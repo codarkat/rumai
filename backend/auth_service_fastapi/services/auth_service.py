@@ -34,8 +34,15 @@ def register_user(user_data):
         db.add(db_user)
         db.commit()
         db.refresh(db_user)
+
+        user_response = {
+            "id": db_user.id,
+            "username": db_user.username,
+            "email": db_user.email,
+            "is_active": db_user.is_active
+        }
         logger.info(f"Successfully registered new user: {user_data.email}")
-        return db_user
+        return user_response
     except IntegrityError as e:
         logger.error(f"Database integrity error: {str(e)}")
         db.rollback()

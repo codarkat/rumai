@@ -1,3 +1,4 @@
 .env
 /backend/auth_service_fastapi/.env
 /backend/auth_service_fastapi/test_main.http
+/backend/auth_service_fastapi/notes.py

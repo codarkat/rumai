@@ -3,18 +3,30 @@ from passlib.context import CryptContext
 from datetime import datetime, timedelta, UTC
 from jose import jwt
 from config import config
+import logging
+
+# - Loại bỏ warning về bcrypt version
+logging.getLogger("passlib").setLevel(logging.ERROR)
+from passlib.context import CryptContext
+
 
 SECRET_KEY = config.SECRET_KEY
 ALGORITHM = config.ALGORITHM
 ACCESS_TOKEN_EXPIRE_MINUTES = config.ACCESS_TOKEN_EXPIRE_MINUTES
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+pwd_context = CryptContext(
+    schemes=["bcrypt"],
+    deprecated="auto"
+)
+
 
 def hash_password(password: str) -> str:
     return pwd_context.hash(password)
 
+
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     return pwd_context.verify(plain_password, hashed_password)
+
 
 def create_access_token(data: dict, expires_delta: timedelta = None):
     to_encode = data.copy()
