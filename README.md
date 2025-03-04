@@ -1,109 +1,48 @@
-# RumAI - AI-powered Russian Learning Platform
+# RumAI - AI-powered Russian Learning Platform  
 
-![RumAI Logo](https://rumai.app/logo.png)
+![RumAI Logo](https://rumai.app/logo.png)  
 
-**RumAI** is a free and open-source platform for learning Russian, utilizing AI to personalize the learning experience, assist with translations, enhance listening and speaking skills, and build a learning community.
+**RumAI** is a free, open-source platform designed to assist learners in studying Russian. It leverages AI to personalize learning experiences, provide translations, support listening and speaking practice, and build a strong learning community.  
 
-📌 **Homepage:** [https://rumai.app](https://rumai.app)  
+📌 **Website:** [https://rumai.app](https://rumai.app)  
 📌 **GitHub:** [https://github.com/codarkat/rumai](https://github.com/codarkat/rumai)  
-📌 **Documentation:** [https://docs.rumai.app](https://docs.rumai.app)
+📌 **Documentation:** [https://docs.rumai.app](https://docs.rumai.app)  
 
-## 🌎 Language / Ngôn ngữ / Язык
-- [🇬🇧 English](#english)
-- [🇻🇳 Tiếng Việt](#tiếng-việt)
-- [🇷🇺 Русский](#русский)
+## 🚀 Features  
 
----
+### ✅ Core Features  
+- **Russian Basics**: Alphabet, cases, verb conjugations, and essential grammar resources.  
+- **Personalized Exercises**: AI-based learning path and practice based on user proficiency.  
+- **Automatic Translation & Grammar Analysis**: OCR-powered text recognition, grammar breakdown, and explanations.  
+- **AI Tutor Chatbot**: Conversational AI that supports both **Vietnamese and Russian**, assisting with vocabulary and grammar questions.  
 
-# 🇬🇧 English
-## 🚀 Introduction
+### 🔥 Advanced Features (Future Development)  
+- **Speech Recognition**: Improve pronunciation with AI feedback.  
+- **Contextual Learning**: Study Russian through real-world situations, literature, and media.  
+- **Progress Tracking**: Monitor learning history and achievements.  
+- **Community Learning**: Q&A forums, knowledge sharing, and user collaboration.  
 
-RumAI is a free and open-source platform for learning Russian, using AI to personalize the learning experience, support translations, practice listening and speaking skills, and build a learning community.
+## 🛠️ Installation  
 
-### 🌟 Key Features:
-- **AI-Powered Personalized Learning:** Suggests lessons based on users' levels.
-- **Automatic Translation & Grammar Explanation:** Helps understand word and sentence usage.
-- **Learning Community:** Enables interactive learning with AI and peers.
-
-## 🎯 Main Features
-
-### ✅ Core Features:
-- **Russian Basics:** Alphabet, basic vocabulary, and fundamental grammar lessons.
-- **Personalized Exercises:** Adaptive lessons based on user progress.
-- **AI Translation & Grammar Explanation:** OCR for text recognition and grammar breakdown.
-- **AI Tutor Chatbot:** Assists with vocabulary and grammar in text-based chat.
-
-## 🔧 Installation Guide
+To set up the project locally, follow these steps:  
 
 ```bash
 git clone https://github.com/codarkat/rumai.git
 cd rumai
+docker-compose up --build
 ```
 
-...
+## 🤝 Contribution  
 
----
+We welcome contributions from the community! If you'd like to participate in development or share your ideas, please check the **[CONTRIBUTING.md](CONTRIBUTING.md)** for guidelines.
 
-# 🇻🇳 Tiếng Việt
-## 🚀 Giới thiệu
+### **Core Team Members**  
+- **Vu Xuan Canh** - Project Manager, Backend Developer, DevOps Engineer, Technical Writer (**CODARKAT Team**)  
+- **Le Dinh Cuong** - Scrum Master, UI/UX Designer, Frontend Developer (**CODARKAT Team**)  
+- **Le Trung Kien** - AI Engineer (**MIREA Team**)  
+- **Do Linh** - Russian Language Expert (**MIREA Team**)  
 
-RumAI là một nền tảng học tiếng Nga miễn phí, mã nguồn mở, sử dụng AI để cá nhân hóa trải nghiệm học tập, hỗ trợ dịch thuật, luyện kỹ năng nghe nói và xây dựng cộng đồng học tập.
+## 📜 License  
 
-📌 **Trang chủ:** [https://rumai.app](https://rumai.app)  
-📌 **GitHub:** [https://github.com/codarkat/rumai](https://github.com/codarkat/rumai)  
-📌 **Tài liệu dự án:** [https://docs.rumai.app](https://docs.rumai.app)
-
-### 🌟 Điểm khác biệt:
-- **Học cá nhân hóa dựa trên AI:** Đề xuất bài học phù hợp với trình độ người học.
-- **Dịch tự động + giải thích ngữ pháp:** Hỗ trợ hiểu rõ cách sử dụng từ và câu.
-- **Cộng đồng học tập:** Học tập tương tác với người khác và AI.
-
-## 🎯 Tính năng chính
-
-### ✅ Tính năng cơ bản:
-- **Làm quen với Tiếng Nga:** Hướng dẫn bảng chữ cái, từ vựng cơ bản, ngữ pháp nền tảng.
-- **Bài tập cá nhân hóa:** Gợi ý bài học dựa trên trình độ người học.
-- **Dịch tự động & giải thích ngữ pháp:** OCR nhận diện văn bản từ ảnh, phân tích ngữ pháp.
-- **Chatbot Gia sư:** Chatbot hỗ trợ giải đáp thắc mắc tiếng Nga bằng văn bản.
-
-## 🔧 Hướng dẫn cài đặt
-
-```bash
-git clone https://github.com/codarkat/rumai.git
-cd rumai
-```
-
-...
-
----
-
-# 🇷🇺 Русский
-## 🚀 Введение
-
-RumAI — это бесплатная платформа с открытым исходным кодом для изучения русского языка. Она использует ИИ для персонализации обучения, поддержки перевода, развития навыков аудирования и говорения, а также создания обучающего сообщества.
-
-📌 **Домашняя страница:** [https://rumai.app](https://rumai.app)  
-📌 **GitHub:** [https://github.com/codarkat/rumai](https://github.com/codarkat/rumai)  
-📌 **Документация:** [https://docs.rumai.app](https://docs.rumai.app)
-
-### 🌟 Ключевые особенности:
-- **Персонализированное обучение на основе ИИ:** Рекомендует уроки в зависимости от уровня пользователя.
-- **Автоматический перевод и объяснение грамматики:** Помогает понять использование слов и предложений.
-- **Сообщество обучения:** Возможность обучения с ИИ и другими пользователями.
-
-## 🎯 Основные функции
-
-### ✅ Базовые функции:
-- **Основы русского языка:** Алфавит, базовый словарный запас и основы грамматики.
-- **Персонализированные упражнения:** Уроки, адаптированные к прогрессу пользователя.
-- **ИИ-перевод и объяснение грамматики:** Распознавание текста (OCR) и грамматический анализ.
-- **ИИ-чатбот-репетитор:** Помощь с лексикой и грамматикой в текстовом чате.
-
-## 🔧 Руководство по установке
-
-```bash
-git clone https://github.com/codarkat/rumai.git
-cd rumai
-```
-
-...
+This project is licensed under the **MIT License**.  
+See the **[LICENSE](LICENSE)** file for more details.
