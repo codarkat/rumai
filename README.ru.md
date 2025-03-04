@@ -31,8 +31,8 @@ docker-compose up --build
 Мы рады видеть ваш вклад в проект! Если вы хотите присоединиться к разработке или поделиться своими идеями, пожалуйста, ознакомьтесь с **[CONTRIBUTING.md](CONTRIBUTING.md)**.
 
 ### **Основная команда**  
-- **Vu Xuan Canh** - Руководитель проекта, Backend Developer, DevOps Engineer, Technical Writer (**CODARKAT Team**)  
-- **Le Dinh Cuong** - Scrum Master, UI/UX Designer, Frontend Developer (**CODARKAT Team**)  
+- **Vu Xuan Canh** - Руководитель проекта, Бэкэнд-разработчик, DevOps-инженер, Технический писатель (**CODARKAT Team**)  
+- **Le Dinh Cuong** - Scrum-мастер, UI/UX-дизайнер, фронтенд-разработчик (**CODARKAT Team**)  
 - **Le Trung Kien** - Инженер AI (**MIREA Team**)  
 - **Do Linh** - Эксперт по русскому языку (**MIREA Team**)  
 
