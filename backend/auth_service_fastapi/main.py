@@ -1,6 +1,6 @@
 # main.py
 from fastapi import FastAPI
-from routers import auth, exercise  # Import thêm các router khác nếu có
+from routers import auth
 
 app = FastAPI(
     title="RumAI API",
@@ -10,7 +10,7 @@ app = FastAPI(
 
 # Đăng ký các router
 app.include_router(auth.router, prefix="/auth", tags=["Authentication"])
-app.include_router(exercise.router, prefix="/exercise", tags=["Exercises"])
+# app.include_router(exercise.router, prefix="/exercise", tags=["Exercises"])
 
 if __name__ == "__main__":
     import uvicorn

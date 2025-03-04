@@ -1,7 +1,7 @@
 # auth.py
 from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel
-from app.services.auth_service import register_user, authenticate_user
+from services.auth_service import register_user, authenticate_user
 
 router = APIRouter()
 
