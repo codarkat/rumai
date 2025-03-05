@@ -1,7 +1,9 @@
 # auth.py
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, status, Request
+from jose import jwt, JWTError
 from pydantic import BaseModel
 from services.auth_service import register_user, authenticate_user
+from utils.security import create_access_token, SECRET_KEY, ALGORITHM
 
 router = APIRouter()
 
@@ -30,11 +32,18 @@ class UserLogin(BaseModel):
     email: str
     password: str
 
+class TokenResponse(BaseModel):
+    access_token: str
+    refresh_token: str
+    token_type: str = "bearer"
+
+
+class RefreshTokenRequest(BaseModel):
+    refresh_token: str
 
 @router.post("/register",
              summary="Đăng ký người dùng",
              response_model=RegisterResponse,
-             # response_description="Thông tin người dùng đã đăng ký thành công",
              status_code=status.HTTP_201_CREATED)
 async def register(user: UserRegister):
     """
@@ -57,17 +66,47 @@ async def register(user: UserRegister):
 
 @router.post("/login",
              summary="Đăng nhập người dùng",
-             response_description="Token truy cập")
-async def login(user: UserLogin):
+             response_model=TokenResponse)
+async def login(user: UserLogin, request: Request):
     """
     Đăng nhập và lấy token với:
     - **email**: địa chỉ email đã đăng ký
     - **password**: mật khẩu
     """
-    token = authenticate_user(user)
-    if not token:
+    tokens = authenticate_user(user)
+    if not tokens:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Email hoặc mật khẩu không chính xác"
         )
-    return {"access_token": token, "token_type": "bearer"}
+    return tokens
+
+@router.post("/refresh-token",
+             summary="Lấy access token mới từ refresh token",
+             response_model=TokenResponse)
+async def refresh_token(data: RefreshTokenRequest):
+    """
+    Lấy access token mới từ refresh token
+    - **refresh_token**: token đã được cấp trước đó
+    """
+    try:
+        payload = jwt.decode(data.refresh_token, SECRET_KEY, algorithms=[ALGORITHM])
+        # Kiểm tra lại các claims nếu cần (vd: kiểm tra sub, user_id,...)
+        token_data = {
+            "sub": payload.get("sub"),
+            "user_id": payload.get("user_id"),
+            "username": payload.get("username")
+        }
+        new_access_token = create_access_token(token_data)
+        # Trong ví dụ này, có thể trả về luôn cả refresh token cũ.
+        # Nếu cần, có thể tạo refresh token mới để tăng tính bảo mật.
+        return {
+            "access_token": new_access_token,
+            "refresh_token": data.refresh_token,
+            "token_type": "bearer"
+        }
+    except JWTError as e:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Refresh token không hợp lệ hoặc đã hết hạn"
+        )

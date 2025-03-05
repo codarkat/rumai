@@ -2,7 +2,7 @@ import logging
 from sqlalchemy.exc import IntegrityError
 from database import SessionLocal
 from models.user import User
-from utils.security import hash_password, verify_password, create_access_token
+from utils.security import hash_password, verify_password, create_access_token, create_refresh_token
 
 # Thêm cấu hình logging
 logging.basicConfig(
@@ -66,16 +66,16 @@ def authenticate_user(user_data):
             logger.warning(f"Failed login attempt for email: {user_data.email}")
             return None
 
-        # Tạo token nếu xác thực thành công
-        access_token = create_access_token(
-            data={
-                "sub": user.email,
-                "user_id": user.id,
-                "username": user.username
-            }
-        )
+        token_data = {
+            "sub": user.email,
+            "user_id": user.id,
+            "username": user.username
+        }
+        access_token = create_access_token(token_data)
+        refresh_token = create_refresh_token(token_data)
         logger.info(f"Successful login for user: {user_data.email}")
-        return access_token
+
+        return {"access_token": access_token, "refresh_token": refresh_token}
 
     except Exception as e:
         logger.error(f"Error during authentication: {str(e)}")
