@@ -3,6 +3,7 @@ from sqlalchemy.exc import IntegrityError
 from database import SessionLocal
 from models.user import User
 from utils.security import hash_password, verify_password, create_access_token, create_refresh_token
+from datetime import datetime, timezone
 
 # Thêm cấu hình logging
 logging.basicConfig(
@@ -73,6 +74,12 @@ def authenticate_user(user_data):
         }
         access_token = create_access_token(token_data)
         refresh_token = create_refresh_token(token_data)
+
+        # Cập nhật thời gian đăng nhập gần nhất
+        user.last_login = datetime.now(timezone.utc)
+        db.add(user)
+        db.commit()
+
         logger.info(f"Successful login for user: {user_data.email}")
 
         return {"access_token": access_token, "refresh_token": refresh_token}

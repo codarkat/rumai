@@ -4,6 +4,8 @@ from jose import jwt, JWTError
 from pydantic import BaseModel
 from services.auth_service import register_user, authenticate_user
 from utils.security import create_access_token, SECRET_KEY, ALGORITHM
+from database import SessionLocal
+from models.user import User
 
 router = APIRouter()
 
@@ -16,6 +18,7 @@ class UserResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
 
 class RegisterResponse(BaseModel):
     message: str
@@ -32,6 +35,7 @@ class UserLogin(BaseModel):
     email: str
     password: str
 
+
 class TokenResponse(BaseModel):
     access_token: str
     refresh_token: str
@@ -40,6 +44,7 @@ class TokenResponse(BaseModel):
 
 class RefreshTokenRequest(BaseModel):
     refresh_token: str
+
 
 @router.post("/register",
              summary="Đăng ký người dùng",
@@ -81,6 +86,7 @@ async def login(user: UserLogin, request: Request):
         )
     return tokens
 
+
 @router.post("/refresh-token",
              summary="Lấy access token mới từ refresh token",
              response_model=TokenResponse)
@@ -110,3 +116,31 @@ async def refresh_token(data: RefreshTokenRequest):
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Refresh token không hợp lệ hoặc đã hết hạn"
         )
+
+
+@router.get("/verify-email")
+async def verify_email(token: str):
+    """
+    Xác minh email người dùng
+    - **token**: token xác minh được gửi qua email
+    """
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        email = payload.get("sub")
+        if email is None:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Token không hợp lệ")
+    except JWTError:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Token không hợp lệ")
+
+    db = SessionLocal()
+    user = db.query(User).filter(User.email == email).first()
+    if not user:
+        db.close()
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Không tìm thấy người dùng")
+
+    user.email_verified = True
+    db.add(user)
+    db.commit()
+    db.close()
+
+    return {"message": "Email đã được xác minh thành công"}
