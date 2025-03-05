@@ -1,3 +1,4 @@
+# auth_service.py
 import logging
 from sqlalchemy.exc import IntegrityError
 from database import SessionLocal

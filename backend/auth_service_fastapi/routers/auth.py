@@ -118,7 +118,9 @@ async def refresh_token(data: RefreshTokenRequest):
         )
 
 
-@router.get("/verify-email")
+@router.get("/verify-email", 
+            summary="Xác minh email người dùng",
+            status_code=status.HTTP_200_OK)
 async def verify_email(token: str):
     """
     Xác minh email người dùng
