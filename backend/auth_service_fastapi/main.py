@@ -1,9 +1,12 @@
 # main.py
 
 from fastapi import FastAPI
+from fastapi.responses import RedirectResponse
 from routers import auth
-from database import engine, Base
+from database import engine, Base, SessionLocal
 from config import config
+from sqlalchemy.sql import text
+
 
 PORT = config.PORT
 
@@ -12,6 +15,33 @@ app = FastAPI(
     description="API backend cho dự án RumAI hỗ trợ học tiếng Nga",
     version="0.1.0"
 )
+
+@app.get("/")
+async def root():
+    return RedirectResponse(url='/docs')
+
+
+@app.get("/health", tags=["Health Check"])
+async def health_check():
+    try:
+        # Tạo session để test database connection
+        db = SessionLocal()
+        # Thử truy vấn đơn giản
+        db.execute(text('SELECT 1'))
+        db.close()
+
+        return {
+            "status": "healthy",
+            "database": "connected",
+            "version": "0.1.0"
+        }
+    except Exception as e:
+        return {
+            "status": "unhealthy",
+            "database": "disconnected",
+            "error": str(e)
+        }
+
 
 # Tạo bảng khi khởi động
 Base.metadata.create_all(bind=engine)
