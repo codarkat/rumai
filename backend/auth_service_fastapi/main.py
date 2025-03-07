@@ -2,6 +2,8 @@
 
 from fastapi import FastAPI
 from fastapi.responses import RedirectResponse
+from starlette.middleware.cors import CORSMiddleware
+
 from routers import auth
 from database import engine, Base, SessionLocal
 from config import config
@@ -13,12 +15,43 @@ PORT = config.PORT
 app = FastAPI(
     title="RumAI API",
     description="API backend cho dự án RumAI hỗ trợ học tiếng Nga",
-    version="0.1.0"
+    version="0.1.0",
+    # root_path="/auth",  # Thêm dòng này
+    # servers=[
+    #     {"url": "/auth", "description": "API Gateway"},
+    #     {"url": "http://localhost:8800", "description": "Direct Access"}
+    # ]
 )
+
+# # Cấu hình CORS cho production
+# origins = [
+#     "https://your-frontend-domain.com",  # Domain chính thức của frontend
+#     "http://localhost:3000",  # Development frontend
+# ]
+
+
+# Middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["*"],
+    expose_headers=["*"]
+)
+
+
 
 @app.get("/")
 async def root():
     return RedirectResponse(url='/docs')
+# @app.get("/")
+# async def root():
+#     return {
+#         "message": "Chào mừng đến với RumAI API Authentication",
+#         "docs": "docs",
+#         "health": "health"
+#     }
 
 
 @app.get("/health", tags=["Health Check"])

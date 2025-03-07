@@ -1,7 +1,7 @@
 version: "3.8"
 services:
   # Auth Service và các dependencies
-  auth:
+  auth-service:
     build: ./backend/auth_service_fastapi
     ports:
       - "8800:8800"
