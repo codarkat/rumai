@@ -45,6 +45,12 @@ class UserResponse(BaseModel):
     class Config:
         from_attributes = True
 
+# Pydantic model for update user profile.
+class UpdateUserRequest(BaseModel):
+    username: str
+
+class UpdateEmailRequest(BaseModel):
+    email: str
 
 class RegisterResponse(BaseModel):
     message: str
@@ -254,3 +260,98 @@ async def change_password(
         return {"message": "Password has been changed successfully"}
     db.close()
     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+
+@router.get("/profile", summary="Retrieve current user profile", response_model=UserResponse)
+async def get_profile(current_user: User = Depends(get_current_user)):
+    """
+    Get the profile details of the currently authenticated user.
+    """
+    return current_user
+
+
+@router.put("/profile", summary="Update user profile", response_model=UserResponse)
+async def update_profile(
+        update_data: UpdateUserRequest,
+        current_user: User = Depends(get_current_user)
+):
+    """
+    Update the profile of the currently authenticated user.
+    Allows modification of username
+    """
+    db: Session = SessionLocal()
+    user = db.query(User).filter(User.id == current_user.id).first()
+    if not user:
+        db.close()
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    if update_data.username:
+        user.username = update_data.username
+
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    db.close()
+    return user
+
+# python
+@router.put("/profile/email", summary="Update user email and reset email verification", response_model=UserResponse)
+async def update_email(
+    update_data: UpdateEmailRequest,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Update the authenticated user's email.
+    After changing the email, set email_verified to false.
+    """
+    db: Session = SessionLocal()
+    user = db.query(User).filter(User.id == current_user.id).first()
+    if not user:
+        db.close()
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    # Check if the new email is different from the current email
+    if user.email != update_data.email:
+        user.email = update_data.email
+        user.email_verified = False
+
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+
+    db.close()
+    return user
+
+@router.delete("/profile", summary="Deactivate user account", status_code=status.HTTP_200_OK)
+async def delete_account(current_user: User = Depends(get_current_user)):
+    """
+    Deactivate the account of the currently authenticated user.
+    Instead of a hard delete, sets the account as inactive.
+    """
+    db: Session = SessionLocal()
+    user = db.query(User).filter(User.id == current_user.id).first()
+    if not user:
+        db.close()
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    user.is_active = False
+    db.add(user)
+    db.commit()
+    db.close()
+    return {"message": "User account has been deactivated"}
+
+@router.delete("/profile/permanent", summary="Completely delete user account", status_code=status.HTTP_200_OK)
+async def delete_account_permanent(current_user: User = Depends(get_current_user)):
+    """
+    Permanently delete the account of the currently authenticated user.
+    This will completely remove the user from the database.
+    """
+    db: Session = SessionLocal()
+    user = db.query(User).filter(User.id == current_user.id).first()
+    if not user:
+        db.close()
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    db.delete(user)
+    db.commit()
+    db.close()
+    return {"message": "User account has been permanently deleted"}
