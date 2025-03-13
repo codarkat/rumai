@@ -14,7 +14,7 @@ PORT = config.PORT
 
 app = FastAPI(
     title="RumAI API",
-    description="API backend cho dự án RumAI hỗ trợ học tiếng Nga",
+    description="API Documentation for RumAI",
     version="0.1.0",
     # root_path="/auth",  # Thêm dòng này
     # servers=[
