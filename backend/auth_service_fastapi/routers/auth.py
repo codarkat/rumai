@@ -13,8 +13,17 @@ from sqlalchemy.orm import Session
 router = APIRouter()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")  # change tokenUrl accordingly
 
+# Global in‑memory storage
+blacklisted_tokens = set()  # For token blacklisting (logout and token revocation)
+
+
 # Dependency to get the current authenticated user
 def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
+    if token in blacklisted_tokens:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token has been revoked"
+        )
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         email: str = payload.get("sub")
@@ -34,6 +43,7 @@ def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
     if user is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
     return user
+
 
 
 class UserResponse(BaseModel):
@@ -161,6 +171,36 @@ async def refresh_token(data: RefreshTokenRequest):
             detail="Refresh token không hợp lệ hoặc đã hết hạn"
         )
 
+
+@router.post("/logout", summary="Logout and blacklist the current token")
+async def logout(token: str = Depends(oauth2_scheme)):
+    """
+    Blacklist the provided token so it cannot be used again.
+    """
+    blacklisted_tokens.add(token)
+    return {"message": "Successfully logged out"}
+
+
+@router.post("/revoke-token", summary="Revoke the provided token")
+async def revoke_token(token: str = Depends(oauth2_scheme)):
+    """
+    Revoke the provided token by blacklisting it explicitly.
+    """
+    blacklisted_tokens.add(token)
+    return {"message": "Token has been revoked"}
+
+@router.post("/verify-email/initiate", summary="Initiate email verification")
+async def initiate_email_verification(current_user: User = Depends(get_current_user)):
+    """
+    Generate a verification token, simulating sending a verification email.
+    In practice, you would send this token via email.
+    """
+    token = create_access_token(
+        {"sub": current_user.email},
+        expires_delta=timedelta(minutes=30)
+    )
+    # In production email service would send the token.
+    return {"message": "Verification email sent", "verification_token": token}
 
 @router.get("/verify-email", 
             summary="Xác minh email người dùng",
