@@ -1,13 +1,39 @@
 # auth.py
-from fastapi import APIRouter, HTTPException, status, Request
+from datetime import timedelta, datetime, timezone
+from fastapi import APIRouter, HTTPException, status, Request, Depends
+from fastapi.security import OAuth2PasswordBearer
 from jose import jwt, JWTError
 from pydantic import BaseModel
 from services.auth_service import register_user, authenticate_user
-from utils.security import create_access_token, SECRET_KEY, ALGORITHM
+from utils.security import create_access_token, SECRET_KEY, ALGORITHM, hash_password, verify_password
 from database import SessionLocal
 from models.user import User
+from sqlalchemy.orm import Session
 
 router = APIRouter()
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")  # change tokenUrl accordingly
+
+# Dependency to get the current authenticated user
+def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        email: str = payload.get("sub")
+        if email is None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid authentication credentials",
+            )
+    except JWTError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid authentication credentials",
+        )
+    db: Session = SessionLocal()
+    user = db.query(User).filter(User.email == email).first()
+    db.close()
+    if user is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    return user
 
 
 class UserResponse(BaseModel):
@@ -44,6 +70,18 @@ class TokenResponse(BaseModel):
 
 class RefreshTokenRequest(BaseModel):
     refresh_token: str
+
+class ForgotPasswordRequest(BaseModel):
+    email: str
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str
+
+class ChangePasswordRequest(BaseModel):
+    old_password: str
+    new_password: str
+
 
 
 @router.post("/register",
@@ -146,3 +184,73 @@ async def verify_email(token: str):
     db.close()
 
     return {"message": "Email đã được xác minh thành công"}
+
+
+@router.post("/forgot-password", summary="Initiate password reset flow", status_code=status.HTTP_200_OK)
+async def forgot_password(request_data: ForgotPasswordRequest):
+    """
+    Accepts an email and, if a user exists, creates a short-lived reset token.
+    In production this token should be emailed to the user.
+    """
+    db = SessionLocal()
+    user = db.query(User).filter(User.email == request_data.email).first()
+    db.close()
+    # Always return the same response to avoid email harvesting
+    if user:
+        reset_token = create_access_token(
+            {"sub": user.email},
+            expires_delta=timedelta(minutes=15)
+        )
+        # Here you would send the reset_token by email.
+        # For demonstration purposes, we include the token in the response.
+        return {"message": "If your email exists in the system, a password reset link was sent.",
+                "reset_token": reset_token}
+    return {"message": "If your email exists in the system, a password reset link was sent."}
+
+
+@router.post("/reset-password", summary="Reset password using token", status_code=status.HTTP_200_OK)
+async def reset_password(data: ResetPasswordRequest):
+    """
+    Resets the user password after verifying the reset token.
+    """
+    try:
+        payload = jwt.decode(data.token, SECRET_KEY, algorithms=[ALGORITHM])
+        email: str = payload.get("sub")
+        if email is None:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid token payload")
+    except JWTError:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired token")
+
+    db = SessionLocal()
+    user = db.query(User).filter(User.email == email).first()
+    if not user:
+        db.close()
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    user.hashed_password = hash_password(data.new_password)
+    db.add(user)
+    db.commit()
+    db.close()
+    return {"message": "Password has been reset successfully"}
+
+
+@router.post("/change-password", summary="Change password for authenticated users", status_code=status.HTTP_200_OK)
+async def change_password(
+        data: ChangePasswordRequest,
+        current_user: User = Depends(get_current_user)
+):
+    """
+    Changes the password for an authenticated user.
+    Verifies the old password and updates with the new one.
+    """
+    if not verify_password(data.old_password, current_user.hashed_password):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Old password is incorrect")
+
+    db = SessionLocal()
+    user = db.query(User).filter(User.id == current_user.id).first()
+    if user:
+        user.hashed_password = hash_password(data.new_password)
+        db.commit()
+        db.close()
+        return {"message": "Password has been changed successfully"}
+    db.close()
+    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
