@@ -3,6 +3,7 @@ from datetime import timedelta, datetime, timezone
 from fastapi import APIRouter, HTTPException, status, Request, Depends
 from fastapi.security import OAuth2PasswordBearer
 from jose import jwt, JWTError
+from typing import Optional
 from pydantic import BaseModel
 from services.auth_service import register_user, authenticate_user
 from utils.security import create_access_token, SECRET_KEY, ALGORITHM, hash_password, verify_password
@@ -51,13 +52,21 @@ class UserResponse(BaseModel):
     username: str
     email: str
     is_active: bool
+    age: Optional[int] = None
+    gender: Optional[str] = None
+    russian_level: Optional[str] = None
+    gemini_api_key: Optional[str] = None
 
     class Config:
         from_attributes = True
 
 # Pydantic model for update user profile.
 class UpdateUserRequest(BaseModel):
-    username: str
+    username: Optional[str] = None
+    age: Optional[int] = None
+    gender: Optional[str] = None
+    russian_level: Optional[str] = None
+    gemini_api_key: Optional[str] = None
 
 class UpdateEmailRequest(BaseModel):
     email: str
@@ -325,8 +334,10 @@ async def update_profile(
         db.close()
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
-    if update_data.username:
-        user.username = update_data.username
+    update_fields = update_data.dict(exclude_unset=True)
+    for field, value in update_fields.items():
+        setattr(user, field, value)
+
 
     db.add(user)
     db.commit()

@@ -11,4 +11,8 @@ class User(Base):
     is_active = Column(Boolean, default=True)
     email_verified = Column(Boolean, default=False)
     last_login = Column(DateTime, nullable=True)
+    age = Column(Integer, nullable=True)
+    gender = Column(String, nullable=True)
+    russian_level = Column(String, nullable=True)
+    gemini_api_key = Column(String, nullable=True)
 
