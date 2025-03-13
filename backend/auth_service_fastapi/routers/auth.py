@@ -14,12 +14,18 @@ from sqlalchemy.orm import Session
 router = APIRouter()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")  # change tokenUrl accordingly
 
-# Global in‑memory storage
-blacklisted_tokens = set()  # For token blacklisting (logout and token revocation)
+# Global in‑memory storage for token blacklisting (logout and token revocation)
+blacklisted_tokens = set()
 
 
 # Dependency to get the current authenticated user
 def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
+    """
+    Dependency to retrieve the current authenticated user.
+
+    Raises:
+        HTTPException: If the token is blacklisted, invalid, or user is not found.
+    """
     if token in blacklisted_tokens:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -46,7 +52,6 @@ def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
     return user
 
 
-
 class UserResponse(BaseModel):
     id: int
     username: str
@@ -60,7 +65,7 @@ class UserResponse(BaseModel):
     class Config:
         from_attributes = True
 
-# Pydantic model for update user profile.
+
 class UpdateUserRequest(BaseModel):
     username: Optional[str] = None
     age: Optional[int] = None
@@ -68,8 +73,10 @@ class UpdateUserRequest(BaseModel):
     russian_level: Optional[str] = None
     gemini_api_key: Optional[str] = None
 
+
 class UpdateEmailRequest(BaseModel):
     email: str
+
 
 class RegisterResponse(BaseModel):
     message: str
@@ -96,156 +103,207 @@ class TokenResponse(BaseModel):
 class RefreshTokenRequest(BaseModel):
     refresh_token: str
 
+
 class ForgotPasswordRequest(BaseModel):
     email: str
+
 
 class ResetPasswordRequest(BaseModel):
     token: str
     new_password: str
+
 
 class ChangePasswordRequest(BaseModel):
     old_password: str
     new_password: str
 
 
-
 @router.post("/register",
-             summary="Đăng ký người dùng",
+             summary="User registration",
              response_model=RegisterResponse,
              status_code=status.HTTP_201_CREATED)
 async def register(user: UserRegister):
     """
-    Đăng ký người dùng mới với các thông tin:
-    - **username**: tên người dùng
-    - **email**: địa chỉ email
-    - **password**: mật khẩu
+    Register a new user with the following information:
+    - username: the user's username
+    - email: the user's email address
+    - password: the user's password
+
+    Returns:
+        JSON response containing a success message and user details.
+
+    Raises:
+        HTTPException: If registration fails due to existing email or username.
     """
     created_user = register_user(user)
     if not created_user:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Đăng ký không thành công. Email hoặc username đã tồn tại."
+            detail="Registration failed. Email or username already exists."
         )
     return RegisterResponse(
-        message="Đăng ký thành công",
+        message="Registration successful",
         user=created_user
     )
 
 
 @router.post("/login",
-             summary="Đăng nhập người dùng",
+             summary="User login",
              response_model=TokenResponse)
 async def login(user: UserLogin, request: Request):
     """
-    Đăng nhập và lấy token với:
-    - **email**: địa chỉ email đã đăng ký
-    - **password**: mật khẩu
+    Authenticate a user and return access and refresh tokens.
+
+    Parameters:
+        user: User login data including email and password.
+        request: The incoming request.
+
+    Returns:
+        JSON response containing access token, refresh token, and token type.
+
+    Raises:
+        HTTPException: If the email or password is incorrect.
     """
     tokens = authenticate_user(user)
     if not tokens:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Email hoặc mật khẩu không chính xác"
+            detail="Incorrect email or password"
         )
     return tokens
 
 
 @router.post("/refresh-token",
-             summary="Lấy access token mới từ refresh token",
+             summary="Refresh access token",
              response_model=TokenResponse)
 async def refresh_token(data: RefreshTokenRequest):
     """
-    Lấy access token mới từ refresh token
-    - **refresh_token**: token đã được cấp trước đó
+    Generate a new access token using a valid refresh token.
+
+    Parameters:
+        data: Refresh token payload.
+
+    Returns:
+        JSON response containing the new access token along with the refresh token.
+
+    Raises:
+        HTTPException: If the refresh token is invalid or expired.
     """
     try:
         payload = jwt.decode(data.refresh_token, SECRET_KEY, algorithms=[ALGORITHM])
-        # Kiểm tra lại các claims nếu cần (vd: kiểm tra sub, user_id,...)
         token_data = {
             "sub": payload.get("sub"),
             "user_id": payload.get("user_id"),
             "username": payload.get("username")
         }
         new_access_token = create_access_token(token_data)
-        # Trong ví dụ này, có thể trả về luôn cả refresh token cũ.
-        # Nếu cần, có thể tạo refresh token mới để tăng tính bảo mật.
         return {
             "access_token": new_access_token,
             "refresh_token": data.refresh_token,
             "token_type": "bearer"
         }
-    except JWTError as e:
+    except JWTError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Refresh token không hợp lệ hoặc đã hết hạn"
+            detail="Refresh token is invalid or expired"
         )
 
 
-@router.post("/logout", summary="Logout and blacklist the current token")
+@router.post("/logout", summary="Logout user")
 async def logout(token: str = Depends(oauth2_scheme)):
     """
-    Blacklist the provided token so it cannot be used again.
+    Logout the user by blacklisting the current authentication token.
+
+    Parameters:
+        token: The token extracted from the request.
+
+    Returns:
+        JSON message confirming successful logout.
     """
     blacklisted_tokens.add(token)
     return {"message": "Successfully logged out"}
 
 
-@router.post("/revoke-token", summary="Revoke the provided token")
+@router.post("/revoke-token", summary="Revoke token")
 async def revoke_token(token: str = Depends(oauth2_scheme)):
     """
-    Revoke the provided token by blacklisting it explicitly.
+    Revoke the provided token explicitly by blacklisting it.
+
+    Parameters:
+        token: The token to revoke.
+
+    Returns:
+        JSON message indicating the token has been revoked.
     """
     blacklisted_tokens.add(token)
     return {"message": "Token has been revoked"}
 
+
 @router.post("/verify-email/initiate", summary="Initiate email verification")
 async def initiate_email_verification(current_user: User = Depends(get_current_user)):
     """
-    Generate a verification token, simulating sending a verification email.
-    In practice, you would send this token via email.
+    Generate a verification token for email confirmation and simulate sending it.
+    In production, this token should be emailed to the user.
+
+    Parameters:
+        current_user: The currently authenticated user.
+
+    Returns:
+        JSON message with the verification token.
     """
     token = create_access_token(
         {"sub": current_user.email},
         expires_delta=timedelta(minutes=30)
     )
-    # In production email service would send the token.
     return {"message": "Verification email sent", "verification_token": token}
 
-@router.get("/verify-email", 
-            summary="Xác minh email người dùng",
+
+@router.get("/verify-email",
+            summary="Verify user email",
             status_code=status.HTTP_200_OK)
 async def verify_email(token: str):
     """
-    Xác minh email người dùng
-    - **token**: token xác minh được gửi qua email
+    Verify the user's email using the provided token.
+
+    Parameters:
+        token: The email verification token.
+
+    Returns:
+        JSON message indicating successful email verification.
+
+    Raises:
+        HTTPException: If the token payload is invalid.
     """
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         email = payload.get("sub")
         if email is None:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Token không hợp lệ")
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid token")
     except JWTError:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Token không hợp lệ")
-
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid token")
     db = SessionLocal()
     user = db.query(User).filter(User.email == email).first()
     if not user:
         db.close()
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Không tìm thấy người dùng")
-
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
     user.email_verified = True
     db.add(user)
     db.commit()
     db.close()
-
-    return {"message": "Email đã được xác minh thành công"}
+    return {"message": "Email successfully verified"}
 
 
 @router.post("/forgot-password", summary="Initiate password reset flow", status_code=status.HTTP_200_OK)
 async def forgot_password(request_data: ForgotPasswordRequest):
     """
-    Accepts an email and, if a user exists, creates a short-lived reset token.
-    In production this token should be emailed to the user.
+    Accept an email address and, if a user exists, create a short-lived reset token.
+    In production, this token should be emailed to the user.
+
+    Parameters:
+        request_data: Contains the user's email.
+
+    Returns:
+        JSON message confirming that if the email exists, a reset link has been sent.
     """
     db = SessionLocal()
     user = db.query(User).filter(User.email == request_data.email).first()
@@ -256,8 +314,6 @@ async def forgot_password(request_data: ForgotPasswordRequest):
             {"sub": user.email},
             expires_delta=timedelta(minutes=15)
         )
-        # Here you would send the reset_token by email.
-        # For demonstration purposes, we include the token in the response.
         return {"message": "If your email exists in the system, a password reset link was sent.",
                 "reset_token": reset_token}
     return {"message": "If your email exists in the system, a password reset link was sent."}
@@ -266,7 +322,16 @@ async def forgot_password(request_data: ForgotPasswordRequest):
 @router.post("/reset-password", summary="Reset password using token", status_code=status.HTTP_200_OK)
 async def reset_password(data: ResetPasswordRequest):
     """
-    Resets the user password after verifying the reset token.
+    Reset the user's password after verifying the provided reset token.
+
+    Parameters:
+        data: Contains the reset token and the new password.
+
+    Returns:
+        JSON confirmation message that the password has been reset.
+
+    Raises:
+        HTTPException: If the token is invalid, expired, or if the user is not found.
     """
     try:
         payload = jwt.decode(data.token, SECRET_KEY, algorithms=[ALGORITHM])
@@ -275,7 +340,6 @@ async def reset_password(data: ResetPasswordRequest):
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid token payload")
     except JWTError:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired token")
-
     db = SessionLocal()
     user = db.query(User).filter(User.email == email).first()
     if not user:
@@ -288,18 +352,26 @@ async def reset_password(data: ResetPasswordRequest):
     return {"message": "Password has been reset successfully"}
 
 
-@router.post("/change-password", summary="Change password for authenticated users", status_code=status.HTTP_200_OK)
+@router.post("/change-password", summary="Change password for authenticated user", status_code=status.HTTP_200_OK)
 async def change_password(
         data: ChangePasswordRequest,
         current_user: User = Depends(get_current_user)
 ):
     """
-    Changes the password for an authenticated user.
-    Verifies the old password and updates with the new one.
+    Change the password for the authenticated user after verifying the old password.
+
+    Parameters:
+        data: Contains the old and new passwords.
+        current_user: The currently authenticated user.
+
+    Returns:
+        JSON confirmation message that the password has been changed.
+
+    Raises:
+        HTTPException: If the old password is incorrect or the user is not found.
     """
     if not verify_password(data.old_password, current_user.hashed_password):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Old password is incorrect")
-
     db = SessionLocal()
     user = db.query(User).filter(User.id == current_user.id).first()
     if user:
@@ -314,7 +386,13 @@ async def change_password(
 @router.get("/profile", summary="Retrieve current user profile", response_model=UserResponse)
 async def get_profile(current_user: User = Depends(get_current_user)):
     """
-    Get the profile details of the currently authenticated user.
+    Retrieve the profile details of the currently authenticated user.
+
+    Parameters:
+        current_user: The currently authenticated user.
+
+    Returns:
+        The user profile.
     """
     return current_user
 
@@ -326,76 +404,107 @@ async def update_profile(
 ):
     """
     Update the profile of the currently authenticated user.
-    Allows modification of username
+    Allows modification of username and other optional fields.
+
+    Parameters:
+        update_data: The data for updating user profile.
+        current_user: The currently authenticated user.
+
+    Returns:
+        The updated user profile.
+
+    Raises:
+        HTTPException: If the user is not found.
     """
     db: Session = SessionLocal()
     user = db.query(User).filter(User.id == current_user.id).first()
     if not user:
         db.close()
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
-
     update_fields = update_data.dict(exclude_unset=True)
     for field, value in update_fields.items():
         setattr(user, field, value)
-
-
     db.add(user)
     db.commit()
     db.refresh(user)
     db.close()
     return user
 
-# python
-@router.put("/profile/email", summary="Update user email and reset email verification", response_model=UserResponse)
+
+@router.put("/profile/email", summary="Update user email and reset verification", response_model=UserResponse)
 async def update_email(
-    update_data: UpdateEmailRequest,
-    current_user: User = Depends(get_current_user)
+        update_data: UpdateEmailRequest,
+        current_user: User = Depends(get_current_user)
 ):
     """
-    Update the authenticated user's email.
-    After changing the email, set email_verified to false.
+    Update the user's email and reset email verification status.
+
+    Parameters:
+        update_data: Contains the new email.
+        current_user: The currently authenticated user.
+
+    Returns:
+        The updated user profile.
+
+    Raises:
+        HTTPException: If the user is not found.
     """
     db: Session = SessionLocal()
     user = db.query(User).filter(User.id == current_user.id).first()
     if not user:
         db.close()
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
-
-    # Check if the new email is different from the current email
     if user.email != update_data.email:
         user.email = update_data.email
         user.email_verified = False
-
         db.add(user)
         db.commit()
         db.refresh(user)
-
     db.close()
     return user
+
 
 @router.delete("/profile", summary="Deactivate user account", status_code=status.HTTP_200_OK)
 async def delete_account(current_user: User = Depends(get_current_user)):
     """
     Deactivate the account of the currently authenticated user.
-    Instead of a hard delete, sets the account as inactive.
+    Instead of a hard delete, the user account is set as inactive.
+
+    Parameters:
+        current_user: The currently authenticated user.
+
+    Returns:
+        JSON message confirming account deactivation.
+
+    Raises:
+        HTTPException: If the user is not found.
     """
     db: Session = SessionLocal()
     user = db.query(User).filter(User.id == current_user.id).first()
     if not user:
         db.close()
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
-
     user.is_active = False
     db.add(user)
     db.commit()
     db.close()
     return {"message": "User account has been deactivated"}
 
-@router.delete("/profile/permanent", summary="Completely delete user account", status_code=status.HTTP_200_OK)
+
+@router.delete("/profile/permanent", summary="Permanently delete user account", status_code=status.HTTP_200_OK)
 async def delete_account_permanent(current_user: User = Depends(get_current_user)):
     """
     Permanently delete the account of the currently authenticated user.
-    This will completely remove the user from the database.
+    This action removes the user from the database entirely.
+
+    Parameters:
+        current_user: The currently authenticated user.
+
+    Returns:
+        JSON message confirming permanent deletion.
+
+    Raises:
+        HTTPException: If the user is not found.
     """
     db: Session = SessionLocal()
     user = db.query(User).filter(User.id == current_user.id).first()
