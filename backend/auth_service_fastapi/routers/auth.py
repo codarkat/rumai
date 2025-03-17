@@ -434,6 +434,19 @@ async def update_profile(
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
 
+        # Kiểm tra nếu username được cập nhật
+        if request.username and request.username != user.username:
+            # Kiểm tra username mới đã tồn tại chưa
+            existing_user = db.query(User).filter(
+                User.username == request.username,
+                User.id != current_user.id
+            ).first()
+            if existing_user:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Username already taken"
+                )
+
         # Cập nhật thông tin
         for key, value in request.dict(exclude_unset=True).items():
             setattr(user, key, value)
