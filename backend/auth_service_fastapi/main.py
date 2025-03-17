@@ -9,8 +9,11 @@ from database import engine, Base, SessionLocal
 from config import config
 from sqlalchemy.sql import text
 
+from schemas.health import ServiceHealth, HealthCheck, ServicesStatus
+from utils.cache import cache_response, redis_client
 
 PORT = config.PORT
+VERSION = config.VERSION
 
 app = FastAPI(
     title="RumAI API",
@@ -41,10 +44,11 @@ app.add_middleware(
 )
 
 
-
 @app.get("/")
 async def root():
     return RedirectResponse(url='/docs')
+
+
 # @app.get("/")
 # async def root():
 #     return {
@@ -54,26 +58,66 @@ async def root():
 #     }
 
 
-@app.get("/health", tags=["Health Check"])
-async def health_check():
+async def check_database() -> ServiceHealth:
+    """Kiểm tra kết nối database"""
     try:
-        # Tạo session để test database connection
         db = SessionLocal()
-        # Thử truy vấn đơn giản
         db.execute(text('SELECT 1'))
         db.close()
-
-        return {
-            "status": "healthy",
-            "database": "connected",
-            "version": "0.1.0"
-        }
+        return ServiceHealth(
+            status="healthy",
+            details="connected"
+        )
     except Exception as e:
-        return {
-            "status": "unhealthy",
-            "database": "disconnected",
-            "error": str(e)
-        }
+        return ServiceHealth(
+            status="unhealthy",
+            details=str(e)
+        )
+
+
+async def check_redis() -> ServiceHealth:
+    """Kiểm tra kết nối Redis"""
+    try:
+        await redis_client.ping()
+        return ServiceHealth(
+            status="healthy",
+            details="connected"
+        )
+    except Exception as e:
+        return ServiceHealth(
+            status="unhealthy",
+            details=str(e)
+        )
+
+
+@app.get(
+    "/health",
+    tags=["Health Check"],
+    response_model=HealthCheck,
+    description="Kiểm tra trạng thái hoạt động của các services trong hệ thống"
+)
+@cache_response(expire_time_seconds=60)
+async def health_check() -> HealthCheck:
+    # Kiểm tra các services
+    db_health = await check_database()
+    redis_health = await check_redis()
+
+    # Tổng hợp trạng thái
+    services = ServicesStatus(
+        database=db_health,
+        redis=redis_health
+    )
+
+    # Xác định trạng thái tổng thể
+    overall_status = "healthy"
+    if db_health.status == "unhealthy" or redis_health.status == "unhealthy":
+        overall_status = "unhealthy"
+
+    return HealthCheck(
+        status=overall_status,
+        services=services,
+        version=VERSION  # Thêm VERSION vào config.py
+    )
 
 
 # Tạo bảng khi khởi động

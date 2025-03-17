@@ -48,11 +48,22 @@ services:
       - redis_data:/data
     networks:
       - rumai_network
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
       timeout: 5s
       retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 300mb
+        reservations:
+          memory: 100mb
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
 
   # Kong Gateway và các dependencies
   kong-database:

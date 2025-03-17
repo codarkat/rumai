@@ -5,11 +5,21 @@ from fastapi.security import OAuth2PasswordBearer
 from jose import jwt, JWTError
 from typing import Optional
 from pydantic import BaseModel
+from sqlalchemy.exc import SQLAlchemyError
+
 from services.auth_service import register_user, authenticate_user
 from utils.security import create_access_token, SECRET_KEY, ALGORITHM, hash_password, verify_password
-from database import SessionLocal
+from utils.cache import cache_response, invalidate_cache
+from database import SessionLocal, get_db
 from models.user import User
 from sqlalchemy.orm import Session
+from uuid import UUID
+
+import logging
+
+logger = logging.getLogger(__name__)
+
+
 
 router = APIRouter()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")  # change tokenUrl accordingly
@@ -53,9 +63,10 @@ def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
 
 
 class UserResponse(BaseModel):
-    id: int
+    id: UUID
     username: str
     email: str
+    full_name: Optional[str] = None
     is_active: bool
     age: Optional[int] = None
     gender: Optional[str] = None
@@ -68,6 +79,7 @@ class UserResponse(BaseModel):
 
 class UpdateUserRequest(BaseModel):
     username: Optional[str] = None
+    full_name: Optional[str] = None
     age: Optional[int] = None
     gender: Optional[str] = None
     russian_level: Optional[str] = None
@@ -384,51 +396,70 @@ async def change_password(
 
 
 @router.get("/profile", summary="Retrieve current user profile", response_model=UserResponse)
+@cache_response(expire_time_seconds=300)
 async def get_profile(current_user: User = Depends(get_current_user)):
     """
-    Retrieve the profile details of the currently authenticated user.
+    Retrieve the profile of the currently authenticated user.
 
     Parameters:
         current_user: The currently authenticated user.
 
     Returns:
-        The user profile.
+        JSON response containing user profile details.
     """
-    return current_user
+    return {
+        "id": str(current_user.id),
+        "username": current_user.username,
+        "email": current_user.email,
+        "full_name": current_user.full_name,
+        "is_active": current_user.is_active,
+        "age": current_user.age,
+        "gender": current_user.gender,
+        "russian_level": current_user.russian_level
+    }
+    # return current_user
 
 
 @router.put("/profile", summary="Update user profile", response_model=UserResponse)
 async def update_profile(
-        update_data: UpdateUserRequest,
-        current_user: User = Depends(get_current_user)
+        request: UpdateUserRequest,
+        current_user: User = Depends(get_current_user),
+        db: Session = Depends(get_db)
+
 ):
-    """
-    Update the profile of the currently authenticated user.
-    Allows modification of username and other optional fields.
 
-    Parameters:
-        update_data: The data for updating user profile.
-        current_user: The currently authenticated user.
+    try:
+        # Lấy user mới từ database
+        user = db.query(User).filter(User.id == current_user.id).first()
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
 
-    Returns:
-        The updated user profile.
+        # Cập nhật thông tin
+        for key, value in request.dict(exclude_unset=True).items():
+            setattr(user, key, value)
 
-    Raises:
-        HTTPException: If the user is not found.
-    """
-    db: Session = SessionLocal()
-    user = db.query(User).filter(User.id == current_user.id).first()
-    if not user:
+        try:
+            db.commit()
+            # Xóa cache
+            await invalidate_cache(f"get_user_by_id:{user.id}")
+            await invalidate_cache(f"get_user_by_email:{user.email}")
+
+            # Refresh sau khi commit
+            db.refresh(user)
+
+            return user
+
+        except SQLAlchemyError as e:
+            db.rollback()
+            logger.error(f"Database error: {str(e)}")
+            raise HTTPException(status_code=500, detail="Internal server error")
+
+    except Exception as e:
+        logger.error(f"Error updating profile: {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+    finally:
         db.close()
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
-    update_fields = update_data.dict(exclude_unset=True)
-    for field, value in update_fields.items():
-        setattr(user, field, value)
-    db.add(user)
-    db.commit()
-    db.refresh(user)
-    db.close()
-    return user
+
 
 
 @router.put("/profile/email", summary="Update user email and reset verification", response_model=UserResponse)

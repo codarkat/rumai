@@ -6,6 +6,10 @@ load_dotenv()  # Load environment variables từ file .env
 
 
 class Config:
+
+    # Cấu hình ứng dụng
+    VERSION = os.getenv("VERSION", "0.1.0")
+
     # Cấu hình bảo mật
     PORT = int(os.getenv("PORT", 8800))
     SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key")

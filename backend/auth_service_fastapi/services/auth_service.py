@@ -3,6 +3,7 @@ import logging
 from sqlalchemy.exc import IntegrityError
 from database import SessionLocal
 from models.user import User
+from utils.cache import cache_response, invalidate_cache
 from utils.security import hash_password, verify_password, create_access_token, create_refresh_token
 from datetime import datetime, timezone
 
@@ -38,7 +39,7 @@ def register_user(user_data):
         db.refresh(db_user)
 
         user_response = {
-            "id": db_user.id,
+            "id": str(db_user.id),
             "username": db_user.username,
             "email": db_user.email,
             "is_active": db_user.is_active
@@ -70,7 +71,7 @@ def authenticate_user(user_data):
 
         token_data = {
             "sub": user.email,
-            "user_id": user.id,
+            "user_id": str(user.id),
             "username": user.username
         }
         access_token = create_access_token(token_data)
@@ -88,5 +89,25 @@ def authenticate_user(user_data):
     except Exception as e:
         logger.error(f"Error during authentication: {str(e)}")
         return None
+    finally:
+        db.close()
+
+
+@cache_response(expire_time_seconds=300)
+async def get_user_by_email(email: str):
+    db = SessionLocal()
+    try:
+        user = db.query(User).filter(User.email == email).first()
+        return user
+    finally:
+        db.close()
+
+
+@cache_response(expire_time_seconds=300)
+async def get_user_by_id(user_id: str):
+    db = SessionLocal()
+    try:
+        user = db.query(User).filter(User.id == user_id).first()
+        return user
     finally:
         db.close()
