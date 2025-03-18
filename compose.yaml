@@ -154,6 +154,23 @@ services:
     volumes:
       - grafana_data:/var/lib/grafana
 
+  uptime-kuma:
+    image: louislam/uptime-kuma:latest
+    container_name: uptime-kuma
+    restart: unless-stopped
+    volumes:
+      - uptime-kuma-data:/app/data
+    ports:
+      - "3001:3001"  # Port mặc định của Uptime Kuma
+    networks:
+      - monitoring-net
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "http://localhost:3001"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+
 networks:
   rumai_network:
     driver: bridge
@@ -171,3 +188,4 @@ volumes:
   postgres_data:
   redis_data:
   kong-data:
+  uptime-kuma-data:
