@@ -15,7 +15,7 @@ class OCRService:
         response = self.client.text_detection(image=image)
 
         if response.error.message:
-            raise Exception(f"Lỗi khi nhận dạng văn bản: {response.error.message}")
+            raise Exception(f"Error in text recognition: {response.error.message}")
 
         texts = response.text_annotations
 

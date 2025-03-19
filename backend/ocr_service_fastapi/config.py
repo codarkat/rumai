@@ -11,5 +11,6 @@ class Config:
     GOOGLE_APPLICATION_CREDENTIALS: str = os.getenv("GOOGLE_APPLICATION_CREDENTIALS", "")
     SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key")
     ALGORITHM = os.getenv("ALGORITHM", "HS256")
+    AUTH_SERVICE_URL = os.getenv("AUTH_SERVICE_URL", "http://localhost:8800")
 
 config = Config()

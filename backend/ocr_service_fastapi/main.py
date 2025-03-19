@@ -18,7 +18,7 @@ app.add_middleware(
 )
 
 # Router
-app.include_router(ocr.router, prefix=config.API_V1_STR)
+app.include_router(ocr.router, prefix=config.API_V1_STR, dependencies=[Depends(ocr.verify_token)])
 
 
 @app.get("/health")
@@ -28,4 +28,5 @@ def health_check():
 
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run(app, host="0.0.0.0", port=8810)
