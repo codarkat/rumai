@@ -3,6 +3,7 @@
   <component name="NewModuleRootManager">
     <content url="file://$MODULE_DIR$">
       <excludeFolder url="file://$MODULE_DIR$/backend/auth_service_fastapi/.venv" />
+      <excludeFolder url="file://$MODULE_DIR$/backend/ocr_service_fastapi/.venv" />
     </content>
     <orderEntry type="jdk" jdkName="Python 3.13 (auth-service-fast-api)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />

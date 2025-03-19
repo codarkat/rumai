@@ -1,4 +1,10 @@
 .env
+*.json
+*.pem
+*.key
+keys/
+backend/ocr_service_fastapi/.env
+/backend/ocr_service_fastapi/test_main.http
 /backend/auth_service_fastapi/.env
 /backend/auth_service_fastapi/test_main.http
 /backend/auth_service_fastapi/notes.py

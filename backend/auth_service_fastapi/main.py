@@ -124,7 +124,7 @@ async def health_check() -> HealthCheck:
 Base.metadata.create_all(bind=engine)
 
 # Đăng ký các router
-app.include_router(auth.router, prefix="/auth", tags=["Authentication"])
+app.include_router(auth.router, prefix="/auth", tags=["Authentication Services"])
 # app.include_router(exercise.router, prefix="/exercise", tags=["Exercises"])
 
 if __name__ == "__main__":

@@ -22,6 +22,28 @@ services:
       retries: 3
       start_period: 40s
 
+  # OCR Service
+  ocr-service:
+    build: ./backend/ocr_service_fastapi
+    ports:
+      - "8810:8810"
+    env_file:
+      - .env
+    volumes:
+#      - ./backend/ocr_service_fastapi:/app
+      - ./keys:/app/keys:ro # Mount thư mục chỉ đọc chứa credentials
+    environment:
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/keys/google-vision-key.json
+    networks:
+      - rumai_network
+      - api-gateway-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8810/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
   rumai-db:
     image: postgres:13
     environment:
