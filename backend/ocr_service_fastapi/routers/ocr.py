@@ -3,6 +3,7 @@ from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 
+from services.auth_service import AuthService
 from services.ocr_service import OCRService
 from typing import List, Dict, Any
 
@@ -13,9 +14,9 @@ router = APIRouter(prefix="/ocr", tags=["OCR Services"])
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
 
-# Hàm verify token
 async def verify_token(token: str = Depends(oauth2_scheme)):
     try:
+        # Đầu tiên decode token để kiểm tra format
         payload = jwt.decode(token, config.SECRET_KEY, algorithms=[config.ALGORITHM])
         email: str = payload.get("sub")
         if email is None:
@@ -23,6 +24,16 @@ async def verify_token(token: str = Depends(oauth2_scheme)):
                 status_code=401,
                 detail="Invalid Token"
             )
+
+        # Kiểm tra token với Auth Service
+        auth_service = AuthService()
+        is_valid = await auth_service.validate_token(token)
+        if not is_valid:
+            raise HTTPException(
+                status_code=401,
+                detail="Token has been revoked or is invalid"
+            )
+
         return email
     except JWTError:
         raise HTTPException(

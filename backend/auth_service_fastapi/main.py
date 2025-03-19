@@ -12,7 +12,7 @@ from sqlalchemy.sql import text
 from schemas.health import ServiceHealth, HealthCheck, ServicesStatus
 from utils.cache import cache_response, redis_client
 
-PORT = config.PORT
+
 VERSION = config.VERSION
 
 app = FastAPI(
@@ -129,4 +129,4 @@ app.include_router(auth.router, prefix="/auth", tags=["Authentication Services"]
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=PORT)
+    uvicorn.run(app, host="0.0.0.0", port=8800)

@@ -3,6 +3,8 @@ services:
   # Auth Service và các dependencies
   auth-service:
     build: ./backend/auth_service_fastapi
+    container_name: auth-service
+    restart: unless-stopped
     ports:
       - "8800:8800"
     env_file:
@@ -25,6 +27,8 @@ services:
   # OCR Service
   ocr-service:
     build: ./backend/ocr_service_fastapi
+    container_name: ocr-service
+    restart: unless-stopped
     ports:
       - "8810:8810"
     env_file:
@@ -34,6 +38,10 @@ services:
       - ./keys:/app/keys:ro # Mount thư mục chỉ đọc chứa credentials
     environment:
       - GOOGLE_APPLICATION_CREDENTIALS=/app/keys/google-vision-key.json
+      - AUTH_SERVICE_URL=https://api.rumai.app  # Đảm bảo URL này chính xác
+    depends_on:
+      auth-service:
+        condition: service_healthy
     networks:
       - rumai_network
       - api-gateway-network
@@ -46,6 +54,7 @@ services:
 
   rumai-db:
     image: postgres:13
+    restart: unless-stopped
     environment:
       - POSTGRES_USER=${DB_USER}
       - POSTGRES_PASSWORD=${DB_PASSWORD}
@@ -64,6 +73,7 @@ services:
 
   redis:
     image: redis:6
+    restart: unless-stopped
     ports:
       - "6379:6379"
     volumes:
@@ -153,6 +163,7 @@ services:
   prometheus:
     image: prom/prometheus
     container_name: prometheus
+    restart: unless-stopped
     volumes:
       - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
     ports:

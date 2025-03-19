@@ -559,3 +559,70 @@ async def delete_account_permanent(current_user: User = Depends(get_current_user
     db.commit()
     db.close()
     return {"message": "User account has been permanently deleted"}
+
+
+@router.post("/validate-token",
+             summary="Validate JWT token",
+             status_code=status.HTTP_200_OK)
+async def validate_token(token: str = Depends(oauth2_scheme)):
+    """
+    Xác thực tính hợp lệ của JWT token.
+
+    Parameters:
+        token: JWT token cần xác thực (được truyền qua Authorization header)
+
+    Returns:
+        JSON response với thông tin user nếu token hợp lệ
+
+    Raises:
+        HTTPException: Nếu token không hợp lệ, hết hạn hoặc đã bị thu hồi
+    """
+    # Kiểm tra token có trong blacklist không
+    if token in blacklisted_tokens:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token has been revoked"
+        )
+
+    try:
+        # Giải mã và xác thực token
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        email: str = payload.get("sub")
+        if email is None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid token payload"
+            )
+
+        # Kiểm tra user có tồn tại trong database không
+        db = SessionLocal()
+        user = db.query(User).filter(User.email == email).first()
+        db.close()
+
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found"
+            )
+
+        # Trả về thông tin cơ bản của user để xác nhận token hợp lệ
+        return {
+            "valid": True,
+            "user": {
+                "id": str(user.id),
+                "email": user.email,
+                "username": user.username
+            }
+        }
+
+    except JWTError as e:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token or token has expired"
+        )
+    except Exception as e:
+        logger.error(f"Error validating token: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Internal server error"
+        )
