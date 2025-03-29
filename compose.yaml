@@ -52,6 +52,34 @@ services:
       retries: 3
       start_period: 40s
 
+# Custom OCR Service
+  ocr-custom-service:
+    build: ./backend/ocr_custom_service_fastapi
+    container_name: ocr-custom-service
+    restart: unless-stopped
+    ports:
+      - "8811:8811"
+    env_file:
+      - .env
+    environment:
+      - AUTH_SERVICE_URL=https://api.rumai.app
+    depends_on:
+      auth-service:
+        condition: service_healthy
+    networks:
+      - rumai_network
+      - api-gateway-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8811/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          memory: 4G  # ML models require more memory
+
   rumai-db:
     image: postgres:13
     restart: unless-stopped

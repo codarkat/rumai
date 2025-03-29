@@ -20,15 +20,20 @@ app.add_middleware(
 )
 
 # Include routers
-app.include_router(ocr.router)
+app.include_router(ocr.router, prefix=config.API_V1_STR)
 
 @app.get("/")
 async def root():
     return {
         "message": "Welcome to OCR API Service",
         "docs": "/docs",
-        "health": "/api/v1/ocr/health"
+        "health": "/health"
     }
+
+@app.get("/health")
+def health_check():
+    return {"status": "ok"}
+
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host=config.HOST, port=config.PORT, reload=True)

@@ -5,7 +5,7 @@ from config import Config
 import io
 
 router = APIRouter(
-    prefix="/api/v1/ocr",
+    prefix="/ocr",
     tags=["ocr"]
 )
 
@@ -38,8 +38,3 @@ async def extract_text(
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"OCR processing error: {str(e)}")
-
-@router.get("/health")
-async def health_check():
-    """Check if the OCR service is running"""
-    return {"status": "healthy"}
