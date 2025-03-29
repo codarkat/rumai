@@ -8,3 +8,4 @@ transformers
 torch
 numpy
 python-dotenv
+python-jose==3.4.0
