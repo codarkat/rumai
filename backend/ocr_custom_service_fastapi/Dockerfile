@@ -1,22 +1,20 @@
-FROM python:3.10-slim
+FROM python:3.10-slim AS builder
 
 WORKDIR /app
-
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
-    libgl1-mesa-glx \
-    libglib2.0-0 \
-    && rm -rf /var/lib/apt/lists/*
-
-# Copy requirements and install dependencies
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy application code
+FROM python:3.10-slim
+WORKDIR /app
+COPY --from=builder /usr/local/lib/python3.10/site-packages/ /usr/local/lib/python3.10/site-packages/
 COPY . .
 
-# Expose port
-EXPOSE 8811
+# Clean up
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libgl1-mesa-glx \
+    libglib2.0-0 \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
 
-# Command to run the application
+EXPOSE 8811
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8811"]

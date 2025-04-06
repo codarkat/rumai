@@ -23,6 +23,14 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
 
   # OCR Service
   ocr-service:
@@ -51,6 +59,14 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '1.5'
+        reservations:
+          memory: 512M
+          cpus: '0.5'
 
 ## Custom OCR Service
 #  ocr-custom-service:
@@ -98,6 +114,12 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    command: postgres -c shared_buffers=256MB -c max_connections=100
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1'
 
   redis:
     image: redis:6
@@ -172,6 +194,14 @@ services:
     networks:
       - kong-net
       - api-gateway-network    # Thêm network mới
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1'
+        reservations:
+          memory: 512M
+          cpus: '0.5'
 
   konga:
     image: pantsel/konga:latest
@@ -225,11 +255,11 @@ services:
       - "3001:3001"  # Port mặc định của Uptime Kuma
     networks:
       - monitoring-net
-    healthcheck:
-      test: ["CMD", "wget", "--spider", "http://localhost:3001"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+#    healthcheck:
+#      test: ["CMD", "wget", "--spider", "http://localhost:3001"]
+#      interval: 30s
+#      timeout: 10s
+#      retries: 3
 
 
 networks:
