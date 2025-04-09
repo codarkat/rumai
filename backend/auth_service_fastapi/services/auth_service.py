@@ -19,10 +19,10 @@ def register_user(user_data):
     db = SessionLocal()
     try:
         # Kiểm tra email đã tồn tại
-        existing_user = db.query(User).filter(
-            (User.email == user_data.email) |
-            (User.username == user_data.username)
-        ).first()
+        query = User.email == user_data.email
+        if user_data.username:
+            query = query | (User.username == user_data.username)
+        existing_user = db.query(User).filter(query).first()
         if existing_user:
             logger.warning(f"Attempt to register with existing email/username: {user_data.email}")
             return None
@@ -32,6 +32,7 @@ def register_user(user_data):
         db_user = User(
             username=user_data.username,
             email=user_data.email,
+            full_name=user_data.full_name,
             hashed_password=hashed_password
         )
         db.add(db_user)
@@ -42,6 +43,7 @@ def register_user(user_data):
             "id": str(db_user.id),
             "username": db_user.username,
             "email": db_user.email,
+            "full_name": db_user.full_name,
             "is_active": db_user.is_active
         }
         logger.info(f"Successfully registered new user: {user_data.email}")

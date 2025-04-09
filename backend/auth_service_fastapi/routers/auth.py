@@ -100,9 +100,10 @@ class RegisterResponse(BaseModel):
 
 
 class UserRegister(BaseModel):
-    username: str
+    username: Optional[str] = None
     email: str
     password: str
+    full_name: str
 
 
 class UserLogin(BaseModel):
@@ -141,9 +142,10 @@ class ChangePasswordRequest(BaseModel):
 async def register(user: UserRegister):
     """
     Register a new user with the following information:
-    - username: the user's username
+    - username: the user's username (optional)
     - email: the user's email address
     - password: the user's password
+    - full_name: the user's full name
 
     Returns:
         JSON response containing a success message and user details.
