@@ -2,6 +2,7 @@
 from sqlalchemy import Column, Integer, String, Boolean, DateTime
 from sqlalchemy.dialects.postgresql import UUID
 import uuid
+from datetime import datetime, timezone
 from database import Base
 
 class User(Base):
@@ -18,4 +19,9 @@ class User(Base):
     gender = Column(String, nullable=True)
     russian_level = Column(String, nullable=True)
     gemini_api_key = Column(String, nullable=True)
+
+    # Exam time fields
+    time_start = Column(DateTime(timezone=True), nullable=True)
+    duration = Column(Integer, nullable=True, default=3600)  # Default: 60 minutes (in seconds)
+    time_end = Column(DateTime(timezone=True), nullable=True)
 

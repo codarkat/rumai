@@ -72,6 +72,10 @@ class UserResponse(BaseModel):
     gender: Optional[str] = None
     russian_level: Optional[str] = None
     gemini_api_key: Optional[str] = None
+    # Exam time fields
+    time_start: Optional[datetime] = None
+    duration: Optional[int] = None
+    time_end: Optional[datetime] = None
 
     class Config:
         from_attributes = True
@@ -415,7 +419,11 @@ async def get_profile(current_user: User = Depends(get_current_user)):
         "is_active": current_user.is_active,
         "age": current_user.age,
         "gender": current_user.gender,
-        "russian_level": current_user.russian_level
+        "russian_level": current_user.russian_level,
+        "gemini_api_key": current_user.gemini_api_key,
+        "time_start": current_user.time_start,
+        "duration": current_user.duration,
+        "time_end": current_user.time_end
     }
     # return current_user
 
