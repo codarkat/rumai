@@ -31,7 +31,8 @@ Obtain this token via the `POST /auth/login` endpoint.
       "username": "string (optional)",
       "email": "user@example.com",
       "password": "yourpassword",
-      "full_name": "User Full Name"
+      "full_name": "User Full Name",
+      "gemini_api_key": "your_gemini_api_key (optional)"
     }
     ```
 *   **Success Response (201 Created):**

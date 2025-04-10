@@ -31,7 +31,8 @@ Authorization: Bearer <your_access_token>
       "username": "string (необязательно)",
       "email": "user@example.com",
       "password": "yourpassword",
-      "full_name": "Полное Имя Пользователя"
+      "full_name": "Полное Имя Пользователя",
+      "gemini_api_key": "your_gemini_api_key (необязательно)"
     }
     ```
 *   **Успешный ответ (201 Created):**

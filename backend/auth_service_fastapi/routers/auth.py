@@ -64,7 +64,7 @@ def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
 
 class UserResponse(BaseModel):
     id: UUID
-    username: str
+    username: Optional[str] = None
     email: str
     full_name: Optional[str] = None
     is_active: bool
@@ -104,6 +104,7 @@ class UserRegister(BaseModel):
     email: str
     password: str
     full_name: str
+    gemini_api_key: Optional[str] = None
 
 
 class UserLogin(BaseModel):
@@ -146,6 +147,7 @@ async def register(user: UserRegister):
     - email: the user's email address
     - password: the user's password
     - full_name: the user's full name
+    - gemini_api_key: the user's Gemini API key (optional)
 
     Returns:
         JSON response containing a success message and user details.

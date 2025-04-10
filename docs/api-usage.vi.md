@@ -31,7 +31,8 @@ Lấy token này thông qua điểm cuối `POST /auth/login`.
       "username": "string (tùy chọn)",
       "email": "user@example.com",
       "password": "yourpassword",
-      "full_name": "Tên Đầy Đủ Người Dùng"
+      "full_name": "Tên Đầy Đủ Người Dùng",
+      "gemini_api_key": "your_gemini_api_key (tùy chọn)"
     }
     ```
 *   **Phản hồi Thành công (201 Created):**

@@ -33,6 +33,7 @@ def register_user(user_data):
             username=user_data.username,
             email=user_data.email,
             full_name=user_data.full_name,
+            gemini_api_key=user_data.gemini_api_key,
             hashed_password=hashed_password
         )
         db.add(db_user)
@@ -44,6 +45,7 @@ def register_user(user_data):
             "username": db_user.username,
             "email": db_user.email,
             "full_name": db_user.full_name,
+            "gemini_api_key": db_user.gemini_api_key,
             "is_active": db_user.is_active
         }
         logger.info(f"Successfully registered new user: {user_data.email}")
