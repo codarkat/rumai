@@ -1,0 +1,5 @@
+fastapi>=0.100.0 # Core FastAPI framework
+uvicorn[standard]>=0.20.0 # ASGI server to run FastAPI
+pydantic-settings>=2.0.0 # For loading settings from .env/environment
+google-generativeai>=0.4.0 # Google AI Client Library for Gemini
+python-dotenv>=1.0.0 # To load .env file for pydantic-settings

@@ -1,0 +1,19 @@
+fastapi>=0.100.0
+uvicorn[standard]>=0.20.0
+pydantic-settings>=2.0.0
+python-dotenv>=1.0.0
+
+# Database (PostgreSQL async driver)
+asyncpg>=0.27.0
+# SQLAlchemy>=2.0.0 # Optional: Add if/when implementing ORM layer
+# alembic>=1.9.0   # Optional: For database migrations if using SQLAlchemy
+
+# HTTP Client (to call gemini_service)
+httpx>=0.24.0
+
+# Authentication (JWT and password hashing)
+python-jose[cryptography]>=3.3.0
+passlib[bcrypt]>=1.7.4
+
+# Email validation (often useful for user models, optional here)
+# email-validator>=2.0.0
