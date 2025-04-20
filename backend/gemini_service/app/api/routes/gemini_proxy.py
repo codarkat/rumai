@@ -29,7 +29,7 @@ async def get_api_key(x_api_key: Optional[str] = Header(None, alias="X-API-Key")
             detail="Missing Google API Key. Set X-API-Key header or configure DEFAULT_GOOGLE_API_KEY.",
         )
 
-@router.post("/generate", response_model=GeminiResponse, tags=["Gemini"])
+@router.post("/generate-text", response_model=GeminiResponse, tags=["Gemini"])
 async def generate_text_endpoint(
     request_body: GeminiRequest = Body(...),
     api_key: str = Depends(get_api_key) # Inject validated API key
@@ -67,7 +67,46 @@ async def generate_text_endpoint(
         raise http_exc
     except Exception as e:
         # Catch any other unexpected errors during the process
-        logger.exception(f"Unexpected error in /generate endpoint: {e}") # Log full traceback
+        logger.exception(f"Unexpected error in /generate-text endpoint: {e}") # Log full traceback
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"An unexpected error occurred: {e}"
+        )
+
+@router.post("/v1/generate-text", response_model=GeminiResponse, tags=["Gemini"])
+async def generate_text_v1_endpoint(
+    request_body: GeminiRequest = Body(...),
+    api_key: str = Depends(get_api_key)
+):
+    """
+    Alternative endpoint with /v1 prefix to test routing issues.
+    """
+    try:
+        # Configure the SDK with the obtained API key for this request
+        gemini_client.configure_sdk(api_key)
+
+        # Determine the model name to use
+        model_to_use = request_body.model_name or settings.DEFAULT_GEMINI_MODEL_NAME
+        if not model_to_use:
+            logger.error("Missing Gemini model name. Provide it in the request body or DEFAULT_GEMINI_MODEL_NAME setting.")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Missing Gemini model name. Set model_name in request or configure DEFAULT_GEMINI_MODEL_NAME.",
+            )
+
+        # Call the service to generate text
+        generated_content = await gemini_client.generate_text(
+            prompt=request_body.message,
+            model_name=model_to_use,
+            system_instruction=request_body.system_message
+        )
+
+        return GeminiResponse(result=generated_content, model_used=model_to_use)
+
+    except HTTPException as http_exc:
+        raise http_exc
+    except Exception as e:
+        logger.exception(f"Unexpected error in /v1/generate-text endpoint: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"An unexpected error occurred: {e}"

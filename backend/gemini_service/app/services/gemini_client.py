@@ -42,40 +42,58 @@ class GeminiClient:
         """
         logger.info(f"Attempting to generate text with model: {model_name}")
         try:
-            # Initialize the model
-            # Handle potential system instructions if the model/API supports it directly
-            # Note: As of late 2023/early 2024, direct system_instruction might vary by model/API version.
-            # Adjust based on the specific genai library version and model capabilities.
-            # For now, we might prepend system instruction to the prompt if needed,
-            # or use specific model parameters if available.
-            # Example using a basic generation config:
+            # Initialize the model with basic generation config
             generation_config = genai.types.GenerationConfig(
-                # candidate_count=1, # Usually default is 1
-                # temperature=0.7, # Example temperature setting
+                temperature=0.7,
+                top_p=0.95,
+                top_k=40,
+                max_output_tokens=8192,
             )
 
-            # Combine system instruction with prompt if provided and necessary
-            full_prompt = f"{system_instruction}\n\n{prompt}" if system_instruction else prompt
+            # Safety settings - use default settings provided by the API
+            safety_settings = None  # Let the API use its default safety settings
 
-            model = genai.GenerativeModel(model_name, generation_config=generation_config)
+            # Create the model
+            try:
+                model = genai.GenerativeModel(
+                    model_name=model_name,
+                    generation_config=generation_config,
+                    safety_settings=safety_settings
+                )
+            except ValueError as e:
+                logger.error(f"Invalid model name '{model_name}': {e}")
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Invalid model name: {model_name}. Error: {e}"
+                )
 
-            # Generate content
-            response = await model.generate_content_async(full_prompt) # Use async version
+            # Prepare content based on whether we have a system instruction
+            if system_instruction:
+                # Combine system instruction with prompt since many models 
+                # don't directly support system instructions
+                full_prompt = f"System instruction: {system_instruction}\n\nUser request: {prompt}"
+                response = await model.generate_content_async(full_prompt)
+            else:
+                # Simple content generation without system instruction
+                response = await model.generate_content_async(prompt)
 
             # Extract the text from the response
-            # Need to handle potential errors or empty responses from the API
-            if response.parts:
-                generated_text = "".join(part.text for part in response.parts)
+            if response and hasattr(response, 'text'):
+                generated_text = response.text
                 logger.info(f"Successfully generated text using model {model_name}.")
                 return generated_text
-            elif response.prompt_feedback and response.prompt_feedback.block_reason:
-                 # Handle content blocking
-                 block_reason = response.prompt_feedback.block_reason
-                 logger.warning(f"Content generation blocked for model {model_name}. Reason: {block_reason}")
-                 raise HTTPException(
-                     status_code=status.HTTP_400_BAD_REQUEST,
-                     detail=f"Content generation blocked by the AI service. Reason: {block_reason}"
-                 )
+            elif response and hasattr(response, 'parts') and response.parts:
+                generated_text = "".join(part.text for part in response.parts if hasattr(part, 'text'))
+                logger.info(f"Successfully generated text using model {model_name}.")
+                return generated_text
+            elif response and hasattr(response, 'prompt_feedback') and response.prompt_feedback and hasattr(response.prompt_feedback, 'block_reason'):
+                # Handle content blocking
+                block_reason = response.prompt_feedback.block_reason
+                logger.warning(f"Content generation blocked for model {model_name}. Reason: {block_reason}")
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Content generation blocked by the AI service. Reason: {block_reason}"
+                )
             else:
                 # Handle other potential issues like empty response without blocking
                 logger.error(f"Received an unexpected or empty response from Gemini model {model_name}.")

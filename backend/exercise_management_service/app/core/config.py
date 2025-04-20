@@ -24,7 +24,7 @@ class Settings(BaseSettings):
     ADMIN_PASSWORD: str = os.getenv("EXERCISE_ADMIN_PASSWORD", "changeme") # Default, should be overridden by env var
 
     # Gemini Service URL (To call the other service)
-    GEMINI_SERVICE_URL: str = os.getenv("GEMINI_SERVICE_URL", "http://gemini-service:8001/api/v1") # Assuming Docker network
+    GEMINI_SERVICE_URL: str = os.getenv("GEMINI_SERVICE_URL", "http://gemini-service:8001") # Simplified URL without path prefix
 
     # JWT Settings
     SECRET_KEY: str = os.getenv("EXERCISE_SECRET_KEY", "09d25e094faa6ca2556c818166b7a9563b93f7099f6f0f4caa6cf63b88e8d3e7") # Default, CHANGE THIS!

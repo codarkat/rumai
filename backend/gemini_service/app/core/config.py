@@ -11,7 +11,7 @@ class Settings(BaseSettings):
 
     # Service settings
     PROJECT_NAME: str = "Gemini Proxy Service"
-    API_V1_STR: str = "/api/v1"
+    API_V1_STR: str = ""  # Removed "/gemini" prefix to simplify path structure
 
     class Config:
         # Load environment variables from a .env file if it exists

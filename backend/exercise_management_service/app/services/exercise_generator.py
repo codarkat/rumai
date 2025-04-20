@@ -104,7 +104,7 @@ async def generate_exercises_via_gemini(params: GenerateExerciseRequest) -> List
          )
 
     headers = {"X-API-Key": api_key, "Content-Type": "application/json"}
-    gemini_service_url = f"{settings.GEMINI_SERVICE_URL}/generate" # Ensure URL is correct
+    gemini_service_url = f"{settings.GEMINI_SERVICE_URL}/generate-text" # Updated to use new endpoint path
 
     logger.info(f"Calling Gemini Service at {gemini_service_url} for topic '{params.topic}' level {params.level}")
 

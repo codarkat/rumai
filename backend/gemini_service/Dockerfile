@@ -22,8 +22,8 @@ RUN pip install --no-cache-dir --upgrade pip && \
 COPY . .
 
 # Expose the port the app runs on (should match the port in main.py or uvicorn command)
-EXPOSE 8001
+EXPOSE 6161
 
 # Command to run the application using Uvicorn
 # Use 0.0.0.0 to make it accessible from outside the container
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8001"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "6161"]
