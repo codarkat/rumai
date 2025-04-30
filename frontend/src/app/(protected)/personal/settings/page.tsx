@@ -33,7 +33,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 
 // Định nghĩa schema validation
 const userFormSchema = z.object({
-  name: z.string().min(2, { message: "Họ tên phải có ít nhất 2 ký tự" }),
+  full_name: z.string().min(2, { message: "Họ tên phải có ít nhất 2 ký tự" }),
   email: z.string().email({ message: "Email không hợp lệ" }),
   phone: z.string().min(10, { message: "Số điện thoại không hợp lệ" }),
   level: z.string(),
@@ -51,7 +51,7 @@ export default function SettingsPage() {
   const form = useForm<UserFormValues>({
     resolver: zodResolver(userFormSchema),
     defaultValues: {
-      name: "Nguyễn Văn A",
+      full_name: "Nguyễn Văn A",
       email: "nguyenvana@example.com",
       phone: "0912345678",
       level: "Trung cấp",
@@ -163,7 +163,7 @@ export default function SettingsPage() {
                         <Avatar className="w-40 h-40 border-4 border-white">
                           <AvatarImage src="/default-avatar.png" alt="Avatar" />
                           <AvatarFallback className="bg-gradient-to-r from-blue-600 to-sky-400 text-4xl text-white">
-                            {form.getValues("name").charAt(0)}
+                            {form.getValues("full_name").charAt(0)}
                           </AvatarFallback>
                         </Avatar>
 
@@ -180,7 +180,7 @@ export default function SettingsPage() {
                       <div className="md:w-2/3 space-y-4">
                         <FormInput
                           form={form}
-                          name="name"
+                          name="full_name"
                           label="Họ và tên"
                           placeholder="Nhập họ và tên của bạn"
                           icon={<User size={18} />}

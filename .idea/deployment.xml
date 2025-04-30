@@ -7,6 +7,12 @@
           <mappings>
             <mapping deploy="/opt/stacks/rumai" local="$PROJECT_DIR$" web="/" />
           </mappings>
+          <excludedPaths>
+            <excludedPath local="true" path="$PROJECT_DIR$/backend/auth_service_fastapi/.venv" />
+            <excludedPath local="true" path="$PROJECT_DIR$/backend/gemini_service/.venv" />
+            <excludedPath local="true" path="$PROJECT_DIR$/backend/ocr_custom_service_fastapi/.venv" />
+            <excludedPath local="true" path="$PROJECT_DIR$/backend/ocr_service_fastapi/.venv" />
+          </excludedPaths>
         </serverdata>
       </paths>
     </serverData>

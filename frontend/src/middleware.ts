@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { auth } from "./auth";
-import { botLogger } from "../utils/bot-logger";
 
 export default auth((req) => {
   const { nextUrl } = req;
@@ -26,8 +25,6 @@ export default auth((req) => {
   // Kiểm tra xem russian_level có tồn tại không
   const russianLevel = req.auth?.user?.metadata?.russian_level;
 
-  console.log("russianLevel", russianLevel);
-  botLogger.info("russianLevel", { russianLevel });
   const isProficiencyTestPath = path === "/tests/proficiency-test";
 
   // Nếu người dùng đã đăng nhập, russian_level là null, và không ở trang kiểm tra trình độ

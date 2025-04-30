@@ -1,5 +1,4 @@
 import { apiAxios, isBrowser } from "@/lib/apiAxios";
-import { botLogger } from "../../utils/bot-logger";
 import { getSession, signOut } from "next-auth/react";
 
 // Hàm tính thời gian hết hạn của token dựa vào định dạng như '30m', '1h', '30d'
@@ -28,7 +27,7 @@ export interface LoginCredentials {
 export interface RegisterData {
   email: string;
   password: string;
-  name: string;
+  full_name: string;
   username: string;
 }
 
@@ -58,7 +57,7 @@ export interface AuthResponse {
   user: {
     id: string | number;
     email: string;
-    name?: string;
+    full_name?: string;
     username?: string;
     is_active?: boolean;
     age?: number | null;
@@ -95,13 +94,6 @@ class AuthService {
       response.data.access_token_expires_at = tokenExpires;
       response.data.refresh_token_expires_at = refreshTokenExpires;
 
-      botLogger.info("Successfully logged in", {
-        token: token,
-        refreshToken: refreshToken,
-        tokenExpires: tokenExpires,
-        refreshTokenExpires: refreshTokenExpires,
-      });
-
       return response.data;
     } catch (error: any) {
       throw error;
@@ -114,17 +106,8 @@ class AuthService {
         throw new Error("Refresh token không tồn tại");
       }
 
-      botLogger.info("Refreshing token start", {
-        refreshToken,
-      });
-
       const response = await apiAxios.post("/auth/refresh-token", {
         refresh_token: refreshToken,
-      });
-
-      botLogger.info("Refreshed token success", {
-        token: response.data.access_token,
-        refreshToken: response.data.refresh_token,
       });
 
       const newToken = response.data.access_token || response.data.token;
@@ -142,14 +125,6 @@ class AuthService {
       //   refreshTokenExpireEnv
       // ).toISOString();
 
-      // Cập nhật session
-      botLogger.info("Successfully refreshed token", {
-        token: newToken,
-        tokenExpires,
-        // refreshToken: newRefreshToken,
-        // refreshTokenExpires,
-      });
-
       return {
         token: newToken,
         tokenExpires,
@@ -158,9 +133,7 @@ class AuthService {
       };
     } catch (error) {
       console.error("Lỗi khi làm mới token:", error);
-      botLogger.error("Error refreshing token", {
-        error,
-      });
+
       // Đăng xuất người dùng khi gặp lỗi
       await signOut({ redirect: false });
       throw error;
@@ -170,8 +143,10 @@ class AuthService {
   async register(data: RegisterData): Promise<AuthResponse> {
     try {
       const response = await apiAxios.post("/auth/register", data);
+      console.log("Kết quả đăng ký:", response.data);
       return response.data;
     } catch (error: any) {
+      console.log("Lỗi đăng ký:", error);
       console.error("Lỗi đăng ký:", error.message);
       if (error.response) {
         console.error("Dữ liệu phản hồi:", error.response.data);
@@ -268,11 +243,6 @@ class AuthService {
     const expiry = new Date(expiryStr);
     const now = new Date();
 
-    botLogger.info("Token expiry", {
-      expiry,
-      now,
-    });
-
     return now >= expiry;
   }
 
@@ -282,11 +252,6 @@ class AuthService {
 
     const expiry = new Date(expiryStr);
     const now = new Date();
-
-    botLogger.info("Refresh token expiry", {
-      expiry,
-      now,
-    });
 
     return now >= expiry;
   }

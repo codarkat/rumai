@@ -272,7 +272,7 @@ export function Navbar() {
                       isHomePage && !scrolled ? "text-white" : "text-sky-600"
                     }`}
                   >
-                    {session.user.name}
+                    {session.user.full_name}
                   </span>
                   <ChevronDown
                     className={`h-4 w-4 transition-transform duration-200 ${
@@ -303,7 +303,7 @@ export function Navbar() {
                     <div className="py-2">
                       <div className="px-4 py-3 border-b border-gray-100">
                         <p className="text-sm font-medium text-gray-900">
-                          {session.user.name}
+                          {session.user.full_name}
                         </p>
                         <p className="text-xs text-gray-500 truncate">
                           {session.user.email}
@@ -481,7 +481,7 @@ export function Navbar() {
                       <div className="flex items-center space-x-2">
                         <User className="h-4 w-4 text-sky-500" />
                         <span className="text-sm font-medium text-gray-700">
-                          {session.user.name}
+                          {session.user.full_name}
                         </span>
                       </div>
                       <ChevronDown

@@ -3,6 +3,7 @@ import path from "path";
 
 const nextConfig: NextConfig = {
   /* config options here */
+  output: "standalone", // Enable standalone output for Docker deployments
   env: {
     GEMINI_API_KEY: process.env.NEXT_PUBLIC_GEMINI_API_KEY,
     GEMINI_API_MODEL: process.env.NEXT_PUBLIC_GEMINI_API_MODEL,

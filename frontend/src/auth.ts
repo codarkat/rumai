@@ -2,7 +2,6 @@ import NextAuth from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { authService, calculateExpiryTime } from "./services/auth.service";
 import { JWT } from "next-auth/jwt";
-import { botLogger } from "../utils/bot-logger";
 
 /**
  * Chuyển đổi chuỗi thời gian sang milliseconds
@@ -47,7 +46,7 @@ declare module "next-auth" {
   interface Session {
     user: {
       id?: string;
-      name?: string;
+      full_name?: string;
       email?: string;
       token: string;
       refreshToken?: string;
@@ -120,7 +119,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               return {
                 id: String(userData.id || "unknown"),
                 email: userData.email || (credentials.email as string),
-                name: userData.name || "Guest",
+                name: userData.full_name || "Guest",
                 metadata: {
                   username: userData.username || "guest",
                   is_active: userData.is_active || false,
@@ -150,7 +149,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             return {
               id: String(authResponse.user.id || "unknown"),
               email: authResponse.user.email || "guest@mail.com",
-              name: authResponse.user.name || "Guest",
+              name: authResponse.user.full_name || "Guest",
               metadata: {
                 username: authResponse.user.username || "guest",
                 is_active: authResponse.user.is_active || false,
@@ -177,8 +176,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   callbacks: {
     async jwt({ token, user, trigger, session }) {
       if (trigger === "update") {
-        console.log("newSession jwt", session);
-        botLogger.info("newSession jwt", session);
         token.metadata = {
           ...session.user.metadata,
         };

@@ -1,0 +1,22 @@
+# Exclude node_modules since we install in Docker
+node_modules
+
+# Exclude .next build output - we build in Docker
+.next
+
+# Exclude git files
+.git
+.gitignore
+
+# Exclude misc files
+README.md
+.DS_Store
+
+# DO NOT exclude .env files as per requirement
+# .env
+# .env.*
+
+# Exclude Docker files
+Dockerfile
+.dockerignore
+docker-compose.yml 
