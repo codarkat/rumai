@@ -26,9 +26,9 @@ COPY . .
 
 # Expose the port the app runs on (optional, good practice)
 # Change 8000 if your app runs on a different port inside the container
-EXPOSE 8000
+EXPOSE 8810
 
 # Define the command to run the application using uvicorn
 # Adjust the module path 'app.main:app' if your FastAPI app instance is located differently
 # Use --host 0.0.0.0 to make it accessible from outside the container
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8810"]
