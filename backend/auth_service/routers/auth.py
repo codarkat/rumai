@@ -8,7 +8,11 @@ from pydantic import BaseModel
 from sqlalchemy.exc import SQLAlchemyError
 
 from services.auth_service import register_user, authenticate_user
-from utils.security import create_access_token, SECRET_KEY, ALGORITHM, hash_password, verify_password
+from utils.security import (
+    create_access_token, create_internal_jwt, # Thêm import create_internal_jwt
+    SECRET_KEY, ALGORITHM,
+    hash_password, verify_password
+)
 from utils.cache import cache_response, invalidate_cache
 from database import SessionLocal, get_db
 from models.user import User
@@ -135,6 +139,80 @@ class ChangePasswordRequest(BaseModel):
     old_password: str
     new_password: str
 
+
+# --- Endpoint for API Gateway Integration ---
+
+class InternalTokenResponse(BaseModel):
+    internal_token: str
+
+@router.post("/gateway/validate-generate-internal-token",
+             summary="Validate client token and generate internal JWT for Gateway",
+             response_model=InternalTokenResponse,
+             status_code=status.HTTP_200_OK,
+             include_in_schema=False) # Ẩn endpoint này khỏi public OpenAPI schema
+async def validate_and_generate_internal_token(
+    token: str = Depends(oauth2_scheme) # Nhận token gốc từ Kong
+):
+    """
+    (Internal Endpoint for API Gateway)
+    Xác thực access token của client. Nếu hợp lệ, tạo và trả về một JWT nội bộ
+    được ký bằng INTERNAL_JWT_SECRET_KEY để Gateway sử dụng.
+    """
+    # 1. Xác thực Access Token gốc (tương tự /validate-token nhưng không trả về lỗi 404 nếu user không tồn tại ngay)
+    if token in blacklisted_tokens:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token has been revoked"
+        )
+
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        email: str = payload.get("sub")
+        user_id_str: str = payload.get("user_id") # Lấy user_id nếu có trong token gốc
+
+        if email is None or user_id_str is None:
+            logger.warning(f"Invalid original token payload for internal JWT generation: email={email}, user_id={user_id_str}")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid original token payload"
+            )
+
+        # Không cần truy vấn DB ở đây nữa vì microservice sẽ tự xác thực JWT nội bộ
+        # (trừ khi bạn muốn kiểm tra user còn active không trước khi cấp token nội bộ)
+        # db = SessionLocal()
+        # user = db.query(User).filter(User.id == UUID(user_id_str)).first()
+        # db.close()
+        # if not user or not user.is_active:
+        #     raise HTTPException(
+        #         status_code=status.HTTP_401_UNAUTHORIZED,
+        #         detail="User not found or inactive"
+        #     )
+
+        # 2. Tạo JWT nội bộ mới
+        internal_token_data = {
+            "sub": user_id_str, # Sử dụng user_id làm subject cho token nội bộ
+            "email": email # Có thể thêm các claim khác nếu cần
+            # Thêm roles hoặc permissions ở đây nếu có
+        }
+        internal_jwt = create_internal_jwt(data=internal_token_data)
+
+        return InternalTokenResponse(internal_token=internal_jwt)
+
+    except JWTError as e:
+        logger.error(f"Error decoding original token for internal JWT generation: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired original token"
+        )
+    except Exception as e:
+        logger.error(f"Unexpected error during internal token generation: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Internal server error during token processing"
+        )
+
+
+# --- Standard User Endpoints ---
 
 @router.post("/register",
              summary="User registration",

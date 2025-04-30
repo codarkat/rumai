@@ -16,6 +16,14 @@ class Config:
     ALGORITHM = os.getenv("ALGORITHM", "HS256")
     ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", 30))
     REFRESH_TOKEN_EXPIRE_DAYS = int(os.getenv("REFRESH_TOKEN_EXPIRE_DAYS", 7))
+
+    # Cấu hình cho JWT nội bộ (dùng giữa Gateway và Microservices)
+    # Secret key này PHẢI được chia sẻ với các microservice khác (ví dụ: ai_service)
+    # và PHẢI KHÁC với SECRET_KEY dùng cho client tokens.
+    INTERNAL_JWT_SECRET_KEY = os.getenv("INTERNAL_JWT_SECRET_KEY", "a_different_very_secure_secret_key_for_internal_communication")
+    INTERNAL_JWT_ALGORITHM = os.getenv("INTERNAL_JWT_ALGORITHM", "HS256")
+    INTERNAL_JWT_EXPIRE_MINUTES = int(os.getenv("INTERNAL_JWT_EXPIRE_MINUTES", 15)) # Thời gian sống ngắn hơn cho token nội bộ
+
     # Cấu hình cơ sở dữ liệu
     DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://user:password@localhost:5432/rumai_db")
 
