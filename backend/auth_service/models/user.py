@@ -20,8 +20,3 @@ class User(Base):
     russian_level = Column(String, nullable=True)
     gemini_api_key = Column(String, nullable=True)
 
-    # Exam time fields
-    time_start = Column(DateTime(timezone=True), nullable=True)
-    duration = Column(Integer, nullable=True, default=3600)  # Default: 60 minutes (in seconds)
-    time_end = Column(DateTime(timezone=True), nullable=True)
-

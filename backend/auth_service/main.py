@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.responses import RedirectResponse
 from starlette.middleware.cors import CORSMiddleware
 
-from routers import auth, exam_time
+from routers import auth
 from database import engine, Base, SessionLocal
 from config import config
 from sqlalchemy.sql import text
@@ -125,8 +125,6 @@ Base.metadata.create_all(bind=engine)
 
 # Đăng ký các router
 app.include_router(auth.router, prefix="/auth", tags=["Authentication Services"])
-app.include_router(exam_time.router, prefix="/exam-time", tags=["Exam Time Management"])
-
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8800)
