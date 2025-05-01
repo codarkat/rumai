@@ -2,7 +2,7 @@ version: "3.8"
 services:
   # Auth Service và các dependencies
   auth-service:
-    build: ./backend/auth_service_fastapi
+    build: ./backend/auth_service
     container_name: auth-service
     restart: unless-stopped
     ports:
@@ -31,42 +31,73 @@ services:
         reservations:
           memory: 256M
           cpus: '0.25'
+#  ai-service:
+#    build: ./backend/ai_service
+#    container_name: ai-service
+#    restart: unless-stopped
+#    # Không cần ports vì sẽ truy cập qua Kong
+#    # ports:
+#    #  - "8001:8000" # Port nội bộ 8000 như trong Dockerfile
+#    env_file:
+#      - .env
+#    environment:
+#      # Biến môi trường cho xác thực JWT nội bộ từ Gateway
+#      # Giá trị này PHẢI khớp với key được dùng bởi auth_service để ký JWT nội bộ
+#      JWT_SECRET_KEY: ${INTERNAL_JWT_SECRET_KEY} # Lấy từ file .env
+#      JWT_ALGORITHM: ${INTERNAL_JWT_ALGORITHM:-HS256} # Lấy từ .env hoặc mặc định là HS256
+#    networks:                # Thụt lề 4 spaces
+#      - api-gateway-network # Kết nối vào mạng của Kong Gateway
+#      # - rumai_network # Thêm nếu cần giao tiếp trực tiếp với DB hoặc service khác
+#    healthcheck:
+#      test: ["CMD", "curl", "-f", "http://localhost:8810/health"] # Port nội bộ 8000
+#      interval: 30s
+#      timeout: 10s
+#      retries: 3
+#      start_period: 30s
+#    deploy:
+#      resources:
+#        limits:
+#          memory: 1G # Điều chỉnh tùy theo nhu cầu của Gemini
+#          cpus: '1'
+#        reservations:
+#          memory: 512M
+#          cpus: '0.5'
 
-  # OCR Service
-  ocr-service:
-    build: ./backend/ocr_service_fastapi
-    container_name: ocr-service
-    restart: unless-stopped
-    ports:
-      - "8810:8810"
-    env_file:
-      - .env
-    volumes:
-#      - ./backend/ocr_service_fastapi:/app
-      - ./keys:/app/keys:ro # Mount thư mục chỉ đọc chứa credentials
-    environment:
-      - GOOGLE_APPLICATION_CREDENTIALS=/app/keys/google-vision-key.json
-      - AUTH_SERVICE_URL=https://api.rumai.app  # Đảm bảo URL này chính xác
-    depends_on:
-      auth-service:
-        condition: service_healthy
-    networks:
-      - rumai_network
-      - api-gateway-network
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8810/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
-    deploy:
-      resources:
-        limits:
-          memory: 2G
-          cpus: '1.5'
-        reservations:
-          memory: 512M
-          cpus: '0.5'
+#  # OCR Service
+#  ocr-service:
+#    build: ./backend/ocr_service_fastapi
+#    container_name: ocr-service
+#    restart: unless-stopped
+#    ports:
+#      - "8810:8810"
+#    env_file:
+#      - .env
+#    volumes:
+##      - ./backend/ocr_service_fastapi:/app
+#      - ./keys:/app/keys:ro # Mount thư mục chỉ đọc chứa credentials
+#    environment:
+#      - GOOGLE_APPLICATION_CREDENTIALS=/app/keys/google-vision-key.json
+#      - AUTH_SERVICE_URL=https://api.rumai.app  # Đảm bảo URL này chính xác
+#    depends_on:
+#      auth-service:
+#        condition: service_healthy
+#    networks:
+#      - rumai_network
+#      - api-gateway-network
+#    healthcheck:
+#      test: ["CMD", "curl", "-f", "http://localhost:8810/health"]
+#      interval: 30s
+#      timeout: 10s
+#      retries: 3
+#      start_period: 40s
+#    deploy:
+#      resources:
+#        limits:
+#          memory: 2G
+#          cpus: '1.5'
+#        reservations:
+#          memory: 512M
+#          cpus: '0.5'
 
 ## Custom OCR Service
 #  ocr-custom-service:
@@ -230,61 +261,61 @@ services:
       - monitoring-net
       - kong-net
 
-  grafana:
-    image: grafana/grafana
-    container_name: grafana
-    restart: unless-stopped
-    environment:
-      - GF_SECURITY_ADMIN_PASSWORD=admin
-    ports:
-      - "3000:3000"
-    networks:
-      - monitoring-net
-    depends_on:
-      - prometheus
-    volumes:
-      - grafana_data:/var/lib/grafana
+#  grafana:
+#    image: grafana/grafana
+#    container_name: grafana
+#    restart: unless-stopped
+#    environment:
+#      - GF_SECURITY_ADMIN_PASSWORD=admin
+#    ports:
+#      - "3000:3000"
+#    networks:
+#      - monitoring-net
+#    depends_on:
+#      - prometheus
+#    volumes:
+#      - grafana_data:/var/lib/grafana
 
-  uptime-kuma:
-    image: louislam/uptime-kuma:latest
-    container_name: uptime-kuma
-    restart: unless-stopped
-    volumes:
-      - uptime-kuma-data:/app/data
-    ports:
-      - "3001:3001"  # Port mặc định của Uptime Kuma
-    networks:
-      - monitoring-net
+#  uptime-kuma:
+#    image: louislam/uptime-kuma:latest
+#    container_name: uptime-kuma
+#    restart: unless-stopped
+#    volumes:
+#      - uptime-kuma-data:/app/data
+#    ports:
+#      - "3001:3001"  # Port mặc định của Uptime Kuma
+#    networks:
+#      - monitoring-net
+##    healthcheck:
+##      test: ["CMD", "wget", "--spider", "http://localhost:3001"]
+##      interval: 30s
+##      timeout: 10s
+##      retries: 3
+
+#  gemini-service:
+#    build: ./backend/gemini_service
+#    container_name: gemini-service
+#    restart: unless-stopped
+#    ports:
+#      - "6161:6161" # Port defined in gemini_service/main.py
+#    env_file:
+#      - .env # Loads GOOGLE_API_KEY etc.
+#    networks:
+#      - rumai_network # Internal communication with exercise_management_service
 #    healthcheck:
-#      test: ["CMD", "wget", "--spider", "http://localhost:3001"]
+#      test: ["CMD", "curl", "-f", "http://localhost:6161/health"]
 #      interval: 30s
 #      timeout: 10s
 #      retries: 3
-
-  gemini-service:
-    build: ./backend/gemini_service
-    container_name: gemini-service
-    restart: unless-stopped
-    ports:
-      - "6161:6161" # Port defined in gemini_service/main.py
-    env_file:
-      - .env # Loads GOOGLE_API_KEY etc.
-    networks:
-      - rumai_network # Internal communication with exercise_management_service
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:6161/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
-    deploy:
-      resources:
-        limits:
-          memory: 512M
-          cpus: '0.5'
-        reservations:
-          memory: 256M
-          cpus: '0.25'
+#      start_period: 30s
+#    deploy:
+#      resources:
+#        limits:
+#          memory: 512M
+#          cpus: '0.5'
+#        reservations:
+#          memory: 256M
+#          cpus: '0.25'
 
 #  exercise-management-service:
 #    build: ./backend/exercise_management_service
