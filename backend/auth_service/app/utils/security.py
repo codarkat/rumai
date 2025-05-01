@@ -1,25 +1,28 @@
-# security.py
+# app/utils/security.py
 import logging
 from datetime import datetime, timedelta, timezone
 
 from jose import jwt
 
-from config import get_settings
+# Cập nhật đường dẫn import
+from app.core.config import get_settings
 
 # - Loại bỏ warning về bcrypt version
 logging.getLogger("passlib").setLevel(logging.ERROR)
 from passlib.context import CryptContext
 
 
-SECRET_KEY = get_settings().SECRET_KEY
-ALGORITHM = get_settings().ALGORITHM
-ACCESS_TOKEN_EXPIRE_MINUTES = get_settings().ACCESS_TOKEN_EXPIRE_MINUTES
-REFRESH_TOKEN_EXPIRE_DAYS = get_settings().REFRESH_TOKEN_EXPIRE_DAYS
+settings = get_settings() # Gọi hàm để lấy đối tượng settings
+
+SECRET_KEY = settings.SECRET_KEY
+ALGORITHM = settings.ALGORITHM
+ACCESS_TOKEN_EXPIRE_MINUTES = settings.ACCESS_TOKEN_EXPIRE_MINUTES
+REFRESH_TOKEN_EXPIRE_DAYS = settings.REFRESH_TOKEN_EXPIRE_DAYS
 
 # Constants for Internal JWT
-INTERNAL_JWT_SECRET_KEY = get_settings().INTERNAL_JWT_SECRET_KEY
-INTERNAL_JWT_ALGORITHM = get_settings().INTERNAL_JWT_ALGORITHM
-INTERNAL_JWT_EXPIRE_MINUTES = get_settings().INTERNAL_JWT_EXPIRE_MINUTES
+INTERNAL_JWT_SECRET_KEY = settings.INTERNAL_JWT_SECRET_KEY
+INTERNAL_JWT_ALGORITHM = settings.INTERNAL_JWT_ALGORITHM
+INTERNAL_JWT_EXPIRE_MINUTES = settings.INTERNAL_JWT_EXPIRE_MINUTES
 
 pwd_context = CryptContext(
     schemes=["bcrypt"],

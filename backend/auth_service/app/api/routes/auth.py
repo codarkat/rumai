@@ -1,4 +1,4 @@
-# auth.py
+# app/api/routes/auth.py
 from datetime import timedelta, datetime, timezone
 from fastapi import APIRouter, HTTPException, status, Request, Depends
 from fastapi.security import OAuth2PasswordBearer
@@ -7,15 +7,17 @@ from typing import Optional
 from pydantic import BaseModel
 from sqlalchemy.exc import SQLAlchemyError
 
-from services.auth_service import register_user, authenticate_user
-from utils.security import (
-    create_access_token, create_internal_jwt, # Thêm import create_internal_jwt
+# Cập nhật đường dẫn import
+from app.services.auth_service import register_user, authenticate_user
+from app.utils.security import ( # Tạm thời giữ ở utils, sẽ di chuyển sau
+    create_access_token, create_internal_jwt,
     SECRET_KEY, ALGORITHM,
     hash_password, verify_password
 )
-from utils.cache import cache_response, invalidate_cache
-from database import SessionLocal, get_db
-from models.user import User
+from app.utils.cache import cache_response, invalidate_cache # Tạm thời giữ ở utils, sẽ di chuyển sau
+from app.core.database import SessionLocal, get_db, Base # Thêm Base nếu cần tạo bảng trực tiếp từ đây
+from app.models.user import User
+from app.models.schemas import HealthCheck # Import các schema cần thiết (nếu có) từ app.models.schemas
 from sqlalchemy.orm import Session
 from uuid import UUID
 
@@ -24,9 +26,8 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-
 router = APIRouter()
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")  # change tokenUrl accordingly
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")  # Điều chỉnh tokenUrl nếu đường dẫn API thay đổi
 
 # Global in‑memory storage for token blacklisting (logout and token revocation)
 blacklisted_tokens = set()
@@ -58,9 +59,13 @@ def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid authentication credentials",
         )
+    # Sử dụng Session từ database.py đã cập nhật
     db: Session = SessionLocal()
-    user = db.query(User).filter(User.email == email).first()
-    db.close()
+    try: # Thêm try...finally để đảm bảo session được đóng
+        user = db.query(User).filter(User.email == email).first()
+    finally:
+        db.close()
+
     if user is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
     return user
@@ -175,8 +180,10 @@ async def validate_and_generate_internal_token(
         # Không cần truy vấn DB ở đây nữa vì microservice sẽ tự xác thực JWT nội bộ
         # (trừ khi bạn muốn kiểm tra user còn active không trước khi cấp token nội bộ)
         # db = SessionLocal()
-        # user = db.query(User).filter(User.id == UUID(user_id_str)).first()
-        # db.close()
+        # try:
+        #     user = db.query(User).filter(User.id == UUID(user_id_str)).first()
+        # finally:
+        #     db.close()
         # if not user or not user.is_active:
         #     raise HTTPException(
         #         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -213,7 +220,7 @@ async def validate_and_generate_internal_token(
              summary="User registration",
              response_model=RegisterResponse,
              status_code=status.HTTP_201_CREATED)
-async def register(user: UserRegister):
+async def register(user: UserRegister, db: Session = Depends(get_db)): # Inject db session
     """
     Register a new user with the following information:
     - username: the user's username (optional)
@@ -228,7 +235,8 @@ async def register(user: UserRegister):
     Raises:
         HTTPException: If registration fails due to existing email or username.
     """
-    created_user = register_user(user)
+    # Truyền db session vào hàm register_user
+    created_user = register_user(db, user)
     if not created_user:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -236,20 +244,21 @@ async def register(user: UserRegister):
         )
     return RegisterResponse(
         message="Registration successful",
-        user=created_user
+        user=UserResponse.model_validate(created_user) # Sử dụng model_validate cho Pydantic v2
     )
 
 
 @router.post("/login",
              summary="User login",
              response_model=TokenResponse)
-async def login(user: UserLogin, request: Request):
+async def login(user: UserLogin, request: Request, db: Session = Depends(get_db)): # Inject db session
     """
     Authenticate a user and return access and refresh tokens.
 
     Parameters:
         user: User login data including email and password.
         request: The incoming request.
+        db: Database session dependency.
 
     Returns:
         JSON response containing access token, refresh token, and token type.
@@ -257,7 +266,8 @@ async def login(user: UserLogin, request: Request):
     Raises:
         HTTPException: If the email or password is incorrect.
     """
-    tokens = authenticate_user(user)
+    # Truyền db session vào hàm authenticate_user
+    tokens = authenticate_user(db, user.email, user.password)
     if not tokens:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -284,10 +294,19 @@ async def refresh_token(data: RefreshTokenRequest):
     """
     try:
         payload = jwt.decode(data.refresh_token, SECRET_KEY, algorithms=[ALGORITHM])
+        # Kiểm tra các claim cần thiết trong refresh token
+        email = payload.get("sub")
+        user_id = payload.get("user_id")
+        if not email or not user_id:
+             raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid refresh token payload"
+            )
+
         token_data = {
-            "sub": payload.get("sub"),
-            "user_id": payload.get("user_id"),
-            "username": payload.get("username")
+            "sub": email,
+            "user_id": user_id,
+             # "username": payload.get("username") # Lấy username nếu có
         }
         new_access_token = create_access_token(token_data)
         return {
@@ -302,7 +321,7 @@ async def refresh_token(data: RefreshTokenRequest):
         )
 
 
-@router.post("/logout", summary="Logout user")
+@router.post("/logout", summary="Logout user", status_code=status.HTTP_200_OK)
 async def logout(token: str = Depends(oauth2_scheme)):
     """
     Logout the user by blacklisting the current authentication token.
@@ -317,7 +336,7 @@ async def logout(token: str = Depends(oauth2_scheme)):
     return {"message": "Successfully logged out"}
 
 
-@router.post("/revoke-token", summary="Revoke token")
+@router.post("/revoke-token", summary="Revoke token", status_code=status.HTTP_200_OK)
 async def revoke_token(token: str = Depends(oauth2_scheme)):
     """
     Revoke the provided token explicitly by blacklisting it.
@@ -332,7 +351,7 @@ async def revoke_token(token: str = Depends(oauth2_scheme)):
     return {"message": "Token has been revoked"}
 
 
-@router.post("/verify-email/initiate", summary="Initiate email verification")
+@router.post("/verify-email/initiate", summary="Initiate email verification", status_code=status.HTTP_200_OK)
 async def initiate_email_verification(current_user: User = Depends(get_current_user)):
     """
     Generate a verification token for email confirmation and simulate sending it.
@@ -345,80 +364,99 @@ async def initiate_email_verification(current_user: User = Depends(get_current_u
         JSON message with the verification token.
     """
     token = create_access_token(
-        {"sub": current_user.email},
+        {"sub": current_user.email, "scope": "email_verification"}, # Thêm scope để phân biệt
         expires_delta=timedelta(minutes=30)
     )
-    return {"message": "Verification email sent", "verification_token": token}
+    # TODO: Send email with the token in production
+    logger.info(f"Generated email verification token for {current_user.email}: {token}")
+    return {"message": "Verification email sent (simulated)", "verification_token": token}
 
 
 @router.get("/verify-email",
             summary="Verify user email",
             status_code=status.HTTP_200_OK)
-async def verify_email(token: str):
+async def verify_email(token: str, db: Session = Depends(get_db)): # Inject db session
     """
     Verify the user's email using the provided token.
 
     Parameters:
         token: The email verification token.
+        db: Database session dependency.
 
     Returns:
         JSON message indicating successful email verification.
 
     Raises:
-        HTTPException: If the token payload is invalid.
+        HTTPException: If the token payload is invalid or user not found.
     """
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        detail="Invalid verification token",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         email = payload.get("sub")
-        if email is None:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid token")
+        scope = payload.get("scope")
+        if email is None or scope != "email_verification":
+            raise credentials_exception
     except JWTError:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid token")
-    db = SessionLocal()
+        raise credentials_exception
+
     user = db.query(User).filter(User.email == email).first()
     if not user:
-        db.close()
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    if user.email_verified:
+         return {"message": "Email already verified"}
+
     user.email_verified = True
-    db.add(user)
-    db.commit()
-    db.close()
+    try:
+        db.commit()
+    except SQLAlchemyError as e:
+        db.rollback()
+        logger.error(f"Database error during email verification: {e}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to verify email")
+
     return {"message": "Email successfully verified"}
 
 
 @router.post("/forgot-password", summary="Initiate password reset flow", status_code=status.HTTP_200_OK)
-async def forgot_password(request_data: ForgotPasswordRequest):
+async def forgot_password(request_data: ForgotPasswordRequest, db: Session = Depends(get_db)): # Inject db session
     """
     Accept an email address and, if a user exists, create a short-lived reset token.
     In production, this token should be emailed to the user.
 
     Parameters:
         request_data: Contains the user's email.
+        db: Database session dependency.
 
     Returns:
         JSON message confirming that if the email exists, a reset link has been sent.
     """
-    db = SessionLocal()
     user = db.query(User).filter(User.email == request_data.email).first()
-    db.close()
     # Always return the same response to avoid email harvesting
+    reset_token = None
     if user:
         reset_token = create_access_token(
-            {"sub": user.email},
+            {"sub": user.email, "scope": "password_reset"}, # Thêm scope
             expires_delta=timedelta(minutes=15)
         )
-        return {"message": "If your email exists in the system, a password reset link was sent.",
-                "reset_token": reset_token}
-    return {"message": "If your email exists in the system, a password reset link was sent."}
+        # TODO: Send email with the token in production
+        logger.info(f"Generated password reset token for {user.email}: {reset_token}")
+
+    return {"message": "If your email exists in the system, a password reset link was sent (simulated).",
+            "reset_token": reset_token} # Trả về token để test
 
 
 @router.post("/reset-password", summary="Reset password using token", status_code=status.HTTP_200_OK)
-async def reset_password(data: ResetPasswordRequest):
+async def reset_password(data: ResetPasswordRequest, db: Session = Depends(get_db)): # Inject db session
     """
     Reset the user's password after verifying the provided reset token.
 
     Parameters:
         data: Contains the reset token and the new password.
+        db: Database session dependency.
 
     Returns:
         JSON confirmation message that the password has been reset.
@@ -426,29 +464,40 @@ async def reset_password(data: ResetPasswordRequest):
     Raises:
         HTTPException: If the token is invalid, expired, or if the user is not found.
     """
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        detail="Invalid or expired password reset token",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
     try:
         payload = jwt.decode(data.token, SECRET_KEY, algorithms=[ALGORITHM])
         email: str = payload.get("sub")
-        if email is None:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid token payload")
+        scope: str = payload.get("scope")
+        if email is None or scope != "password_reset":
+            raise credentials_exception
     except JWTError:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired token")
-    db = SessionLocal()
+        raise credentials_exception
+
     user = db.query(User).filter(User.email == email).first()
     if not user:
-        db.close()
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
     user.hashed_password = hash_password(data.new_password)
-    db.add(user)
-    db.commit()
-    db.close()
+    try:
+        db.commit()
+    except SQLAlchemyError as e:
+        db.rollback()
+        logger.error(f"Database error during password reset: {e}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to reset password")
+
     return {"message": "Password has been reset successfully"}
 
 
 @router.post("/change-password", summary="Change password for authenticated user", status_code=status.HTTP_200_OK)
 async def change_password(
         data: ChangePasswordRequest,
-        current_user: User = Depends(get_current_user)
+        current_user: User = Depends(get_current_user),
+        db: Session = Depends(get_db) # Inject db session
 ):
     """
     Change the password for the authenticated user after verifying the old password.
@@ -456,28 +505,38 @@ async def change_password(
     Parameters:
         data: Contains the old and new passwords.
         current_user: The currently authenticated user.
+        db: Database session dependency.
 
     Returns:
         JSON confirmation message that the password has been changed.
 
     Raises:
-        HTTPException: If the old password is incorrect or the user is not found.
+        HTTPException: If the old password is incorrect.
     """
     if not verify_password(data.old_password, current_user.hashed_password):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Old password is incorrect")
-    db = SessionLocal()
+
+    # Lấy user từ DB bằng ID để đảm bảo instance được quản lý bởi session hiện tại
     user = db.query(User).filter(User.id == current_user.id).first()
-    if user:
-        user.hashed_password = hash_password(data.new_password)
+    # Mặc dù get_current_user đã kiểm tra, kiểm tra lại ở đây là an toàn
+    if not user:
+         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    user.hashed_password = hash_password(data.new_password)
+    try:
         db.commit()
-        db.close()
-        return {"message": "Password has been changed successfully"}
-    db.close()
-    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+        # Invalidate cache liên quan nếu có
+        await invalidate_cache(f"get_profile:{user.id}") # Ví dụ cache key
+    except SQLAlchemyError as e:
+        db.rollback()
+        logger.error(f"Database error during password change: {e}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to change password")
+
+    return {"message": "Password has been changed successfully"}
 
 
 @router.get("/profile", summary="Retrieve current user profile", response_model=UserResponse)
-@cache_response(expire_time_seconds=300)
+@cache_response(expire_time_seconds=300) # Cache profile response
 async def get_profile(current_user: User = Depends(get_current_user)):
     """
     Retrieve the profile of the currently authenticated user.
@@ -488,18 +547,9 @@ async def get_profile(current_user: User = Depends(get_current_user)):
     Returns:
         JSON response containing user profile details.
     """
-    return {
-        "id": str(current_user.id),
-        "username": current_user.username,
-        "email": current_user.email,
-        "full_name": current_user.full_name,
-        "is_active": current_user.is_active,
-        "age": current_user.age,
-        "gender": current_user.gender,
-        "russian_level": current_user.russian_level,
-        "gemini_api_key": current_user.gemini_api_key,
-    }
-    # return current_user
+    # Trả về dữ liệu theo UserResponse schema
+    # Pydantic v2 sử dụng model_validate hoặc from_orm (nếu Config.from_attributes = True)
+    return UserResponse.model_validate(current_user)
 
 
 @router.put("/profile", summary="Update user profile", response_model=UserResponse)
@@ -507,97 +557,118 @@ async def update_profile(
         request: UpdateUserRequest,
         current_user: User = Depends(get_current_user),
         db: Session = Depends(get_db)
-
-):
-
-    try:
-        # Lấy user mới từ database
-        user = db.query(User).filter(User.id == current_user.id).first()
-        if not user:
-            raise HTTPException(status_code=404, detail="User not found")
-
-        # Kiểm tra nếu username được cập nhật
-        if request.username and request.username != user.username:
-            # Kiểm tra username mới đã tồn tại chưa
-            existing_user = db.query(User).filter(
-                User.username == request.username,
-                User.id != current_user.id
-            ).first()
-            if existing_user:
-                raise HTTPException(
-                    status_code=400,
-                    detail="Username already taken"
-                )
-
-        # Cập nhật thông tin
-        for key, value in request.dict(exclude_unset=True).items():
-            setattr(user, key, value)
-
-        try:
-            db.commit()
-            # Xóa cache
-            await invalidate_cache(f"get_user_by_id:{user.id}")
-            await invalidate_cache(f"get_user_by_email:{user.email}")
-
-            # Refresh sau khi commit
-            db.refresh(user)
-
-            return user
-
-        except SQLAlchemyError as e:
-            db.rollback()
-            logger.error(f"Database error: {str(e)}")
-            raise HTTPException(status_code=500, detail="Internal server error")
-
-    except Exception as e:
-        logger.error(f"Error updating profile: {str(e)}")
-        raise HTTPException(status_code=500, detail="Internal server error")
-    finally:
-        db.close()
-
-
-
-@router.put("/profile/email", summary="Update user email and reset verification", response_model=UserResponse)
-async def update_email(
-        update_data: UpdateEmailRequest,
-        current_user: User = Depends(get_current_user)
 ):
     """
-    Update the user's email and reset email verification status.
+    Update the profile of the currently authenticated user.
 
     Parameters:
-        update_data: Contains the new email.
+        request: Data containing fields to update.
         current_user: The currently authenticated user.
+        db: Database session dependency.
 
     Returns:
         The updated user profile.
 
     Raises:
-        HTTPException: If the user is not found.
+        HTTPException: If the user is not found or username is taken.
     """
-    db: Session = SessionLocal()
     user = db.query(User).filter(User.id == current_user.id).first()
     if not user:
-        db.close()
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
-    if user.email != update_data.email:
-        user.email = update_data.email
-        user.email_verified = False
-        db.add(user)
+
+    update_data = request.model_dump(exclude_unset=True) # Pydantic v2: model_dump()
+
+    # Kiểm tra nếu username được cập nhật và khác với username hiện tại
+    if "username" in update_data and update_data["username"] != user.username:
+        # Kiểm tra username mới đã tồn tại chưa (ngoại trừ user hiện tại)
+        existing_user = db.query(User).filter(
+            User.username == update_data["username"],
+            User.id != current_user.id
+        ).first()
+        if existing_user:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Username already taken"
+            )
+
+    # Cập nhật thông tin user
+    for key, value in update_data.items():
+        setattr(user, key, value)
+
+    try:
         db.commit()
+        # Invalidate cache cho profile đã cập nhật
+        await invalidate_cache(f"get_profile:{user.id}") # Sử dụng cache key phù hợp
         db.refresh(user)
-    db.close()
-    return user
+        return UserResponse.model_validate(user) # Trả về theo schema
+    except SQLAlchemyError as e:
+        db.rollback()
+        logger.error(f"Database error updating profile: {str(e)}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to update profile")
+    except Exception as e: # Bắt các lỗi khác nếu có
+        logger.error(f"Unexpected error updating profile: {str(e)}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="An unexpected error occurred")
+
+
+@router.put("/profile/email", summary="Update user email and reset verification", response_model=UserResponse)
+async def update_email(
+        update_data: UpdateEmailRequest,
+        current_user: User = Depends(get_current_user),
+        db: Session = Depends(get_db)
+):
+    """
+    Update the user's email and reset email verification status. Requires re-verification.
+
+    Parameters:
+        update_data: Contains the new email.
+        current_user: The currently authenticated user.
+        db: Database session dependency.
+
+    Returns:
+        The updated user profile.
+
+    Raises:
+        HTTPException: If the user is not found or email is already taken.
+    """
+    user = db.query(User).filter(User.id == current_user.id).first()
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    new_email = update_data.email
+    if user.email == new_email:
+        return UserResponse.model_validate(user) # Không có gì thay đổi
+
+    # Kiểm tra email mới đã tồn tại chưa
+    existing_email = db.query(User).filter(User.email == new_email).first()
+    if existing_email:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email already registered")
+
+    user.email = new_email
+    user.email_verified = False # Yêu cầu xác thực lại email mới
+    try:
+        db.commit()
+         # Invalidate cache liên quan
+        await invalidate_cache(f"get_profile:{user.id}")
+        await invalidate_cache(f"get_user_by_email:{user.email}") # Cache key cũ
+        db.refresh(user)
+        # TODO: Có thể gửi lại email xác thực ở đây
+        logger.info(f"User {user.id} updated email to {new_email}. Verification reset.")
+        return UserResponse.model_validate(user)
+    except SQLAlchemyError as e:
+        db.rollback()
+        logger.error(f"Database error updating email: {str(e)}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to update email")
 
 
 @router.delete("/profile", summary="Deactivate user account", status_code=status.HTTP_200_OK)
-async def delete_account(current_user: User = Depends(get_current_user)):
+async def deactivate_account(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     """
     Deactivate the account of the currently authenticated user.
     Instead of a hard delete, the user account is set as inactive.
 
     Parameters:
         current_user: The currently authenticated user.
+        db: Database session dependency.
 
     Returns:
         JSON message confirming account deactivation.
@@ -605,26 +676,37 @@ async def delete_account(current_user: User = Depends(get_current_user)):
     Raises:
         HTTPException: If the user is not found.
     """
-    db: Session = SessionLocal()
     user = db.query(User).filter(User.id == current_user.id).first()
     if not user:
-        db.close()
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    if not user.is_active:
+         return {"message": "User account is already inactive"}
+
     user.is_active = False
-    db.add(user)
-    db.commit()
-    db.close()
-    return {"message": "User account has been deactivated"}
+    try:
+        db.commit()
+        # Invalidate cache liên quan
+        await invalidate_cache(f"get_profile:{user.id}")
+        # Có thể cân nhắc blacklist token hiện tại của user
+        # blacklisted_tokens.add(token_used_for_this_request)
+        logger.info(f"User account {user.id} deactivated.")
+        return {"message": "User account has been deactivated"}
+    except SQLAlchemyError as e:
+        db.rollback()
+        logger.error(f"Database error deactivating account: {str(e)}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to deactivate account")
 
 
 @router.delete("/profile/permanent", summary="Permanently delete user account", status_code=status.HTTP_200_OK)
-async def delete_account_permanent(current_user: User = Depends(get_current_user)):
+async def delete_account_permanent(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     """
     Permanently delete the account of the currently authenticated user.
-    This action removes the user from the database entirely.
+    This action removes the user from the database entirely. Use with caution.
 
     Parameters:
         current_user: The currently authenticated user.
+        db: Database session dependency.
 
     Returns:
         JSON message confirming permanent deletion.
@@ -632,79 +714,93 @@ async def delete_account_permanent(current_user: User = Depends(get_current_user
     Raises:
         HTTPException: If the user is not found.
     """
-    db: Session = SessionLocal()
     user = db.query(User).filter(User.id == current_user.id).first()
     if not user:
-        db.close()
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
-    db.delete(user)
-    db.commit()
-    db.close()
-    return {"message": "User account has been permanently deleted"}
+
+    try:
+        # Xóa cache trước khi xóa user
+        await invalidate_cache(f"get_profile:{user.id}")
+        await invalidate_cache(f"get_user_by_id:{user.id}")
+        await invalidate_cache(f"get_user_by_email:{user.email}")
+
+        db.delete(user)
+        db.commit()
+        # Có thể cân nhắc blacklist token hiện tại của user
+        logger.info(f"User account {user.id} permanently deleted.")
+        return {"message": "User account has been permanently deleted"}
+    except SQLAlchemyError as e:
+        db.rollback()
+        logger.error(f"Database error permanently deleting account: {str(e)}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to delete account permanently")
 
 
 @router.post("/validate-token",
              summary="Validate JWT token",
+             response_model=dict, # Trả về dict đơn giản
              status_code=status.HTTP_200_OK)
-async def validate_token(token: str = Depends(oauth2_scheme)):
+async def validate_token(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     """
-    Xác thực tính hợp lệ của JWT token.
+    Validate the integrity and expiration of a JWT token and check if the user exists.
 
     Parameters:
-        token: JWT token cần xác thực (được truyền qua Authorization header)
+        token: JWT token passed via Authorization header.
+        db: Database session dependency.
 
     Returns:
-        JSON response với thông tin user nếu token hợp lệ
+        JSON response with user info if the token is valid.
 
     Raises:
-        HTTPException: Nếu token không hợp lệ, hết hạn hoặc đã bị thu hồi
+        HTTPException: If the token is invalid, expired, revoked, or user not found.
     """
     # Kiểm tra token có trong blacklist không
     if token in blacklisted_tokens:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token has been revoked"
+            detail="Token has been revoked",
+             headers={"WWW-Authenticate": "Bearer"},
         )
+
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Invalid token or token has expired",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
 
     try:
         # Giải mã và xác thực token
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM], options={"verify_aud": False}) # Bỏ qua audience nếu không dùng
         email: str = payload.get("sub")
-        if email is None:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid token payload"
-            )
+        user_id: str = payload.get("user_id") # Lấy user_id nếu có
 
-        # Kiểm tra user có tồn tại trong database không
-        db = SessionLocal()
-        user = db.query(User).filter(User.email == email).first()
-        db.close()
+        if email is None: # Chỉ cần email là đủ để tìm user
+            raise credentials_exception
 
-        if not user:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="User not found"
-            )
+    except JWTError:
+        raise credentials_exception
 
-        # Trả về thông tin cơ bản của user để xác nhận token hợp lệ
-        return {
-            "valid": True,
-            "user": {
-                "id": str(user.id),
-                "email": user.email,
-                "username": user.username
-            }
-        }
+    # Kiểm tra user có tồn tại trong database không
+    user = db.query(User).filter(User.email == email).first()
 
-    except JWTError as e:
+    if not user:
         raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User associated with token not found"
+        )
+
+    # Kiểm tra user có bị inactive không
+    if not user.is_active:
+         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid token or token has expired"
+            detail="User account is inactive"
         )
-    except Exception as e:
-        logger.error(f"Error validating token: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Internal server error"
-        )
+
+    # Trả về thông tin cơ bản của user để xác nhận token hợp lệ
+    return {
+        "valid": True,
+        "user": {
+            "id": str(user.id),
+            "email": user.email,
+            "username": user.username
+        }
+    }

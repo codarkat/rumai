@@ -1,9 +1,9 @@
-# user.py
+# app/models/user.py
 from sqlalchemy import Column, Integer, String, Boolean, DateTime
 from sqlalchemy.dialects.postgresql import UUID
 import uuid
 from datetime import datetime, timezone
-from database import Base
+from app.core.database import Base
 
 class User(Base):
     __tablename__ = "users"
@@ -19,4 +19,3 @@ class User(Base):
     gender = Column(String, nullable=True)
     russian_level = Column(String, nullable=True)
     gemini_api_key = Column(String, nullable=True)
-

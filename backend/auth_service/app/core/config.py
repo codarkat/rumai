@@ -1,3 +1,5 @@
+# app/core/config.py
+
 from functools import lru_cache
 # config.py - Configuration file using Pydantic BaseSettings
 from pydantic_settings import BaseSettings
