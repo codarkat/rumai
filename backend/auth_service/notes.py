@@ -51,6 +51,9 @@
 # token = jwt.encode(payload, secret_key, algorithm=algorithm)
 # print("Generated token:", token)
 ############################################################################
+
+# * Không cần truy cập vào container vì alembic đã kết nối với db trong container
+
 # # 1. Xóa toàn bộ migration cũ (nếu có)
 # Chi xoa khi loi va tao lai rm -rf migrations/versions/*
 #
@@ -69,12 +72,12 @@
 
 # Test validate token
 from jose import jwt
-from config import config
+from config import get_settings
 
 token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0ZXN0MUBnbWFpbC5jb20iLCJ1c2VyX2lkIjoiOGI2NDY4NjQtMjY3Zi00MjM2LWE0OGEtNmNjMjIwYTVlNGE3IiwidXNlcm5hbWUiOiJ0ZXN0MSIsImV4cCI6MTc0Mzk1MjExN30.OBXp8ZLic918QkIJtzVzZKrK09Ka8UONJEOkdskHfoM"
 
 try:
-    payload = jwt.decode(token, config.SECRET_KEY, algorithms=["HS256"])
+    payload = jwt.decode(token, get_settings.SECRET_KEY, algorithms=["HS256"])
     print("Token valid:", payload)
 except jwt.JWTError as e:
     print("Token invalid:", str(e))

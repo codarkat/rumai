@@ -6,14 +6,14 @@ from starlette.middleware.cors import CORSMiddleware
 
 from routers import auth
 from database import engine, Base, SessionLocal
-from config import config
+from config import get_settings
 from sqlalchemy.sql import text
 
 from schemas.health import ServiceHealth, HealthCheck, ServicesStatus
 from utils.cache import cache_response, redis_client
 
 
-VERSION = config.VERSION
+VERSION = get_settings().VERSION
 
 app = FastAPI(
     title="RumAI API",

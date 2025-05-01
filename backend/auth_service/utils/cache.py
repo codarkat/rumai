@@ -5,13 +5,13 @@ from fastapi.encoders import jsonable_encoder
 from redis import asyncio as aioredis
 from functools import wraps
 from datetime import timedelta
-from config import config
+from config import get_settings
 import logging
 
 logger = logging.getLogger(__name__)
 
 # Cấu hình Redis
-REDIS_URL = config.REDIS_URL
+REDIS_URL = get_settings().REDIS_URL
 
 # Khởi tạo Redis client
 redis_client = aioredis.from_url(REDIS_URL, encoding='utf-8', decode_responses=True)

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
-  <component name="PublishConfigData" autoUpload="Always" serverName="vcertech rumai" remoteFilesAllowedToDisappearOnAutoupload="false">
+  <component name="PublishConfigData" serverName="vcertech rumai" remoteFilesAllowedToDisappearOnAutoupload="false">
     <serverData>
       <paths name="vcertech rumai">
         <serverdata>
@@ -16,6 +16,5 @@
         </serverdata>
       </paths>
     </serverData>
-    <option name="myAutoUpload" value="ALWAYS" />
   </component>
 </project>

@@ -1,39 +1,44 @@
-# config.py - Configuration file containing all environment variables
-import os
-from dotenv import load_dotenv
+from functools import lru_cache
+# config.py - Configuration file using Pydantic BaseSettings
+from pydantic_settings import BaseSettings
+from pydantic import Field
 
-load_dotenv()  # Load environment variables từ file .env
-
-
-class Config:
-
+class Settings(BaseSettings):
     # Cấu hình ứng dụng
-    VERSION = os.getenv("VERSION", "0.1.0")
+    VERSION: str = "0.1.0"
 
-    # Cấu hình bảo mật
-    PORT = int(os.getenv("PORT", 8800))
-    SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key")
-    ALGORITHM = os.getenv("ALGORITHM", "HS256")
-    ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", 30))
-    REFRESH_TOKEN_EXPIRE_DAYS = int(os.getenv("REFRESH_TOKEN_EXPIRE_DAYS", 7))
+    # Cấu hình bảo mật & Server
+    PORT: int = 8800
+    SECRET_KEY: str = "your-secret-key"
+    ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    REFRESH_TOKEN_EXPIRE_DAYS: int = 7
 
     # Cấu hình cho JWT nội bộ (dùng giữa Gateway và Microservices)
     # Secret key này PHẢI được chia sẻ với các microservice khác (ví dụ: ai_service)
     # và PHẢI KHÁC với SECRET_KEY dùng cho client tokens.
-    INTERNAL_JWT_SECRET_KEY = os.getenv("INTERNAL_JWT_SECRET_KEY", "a_different_very_secure_secret_key_for_internal_communication")
-    INTERNAL_JWT_ALGORITHM = os.getenv("INTERNAL_JWT_ALGORITHM", "HS256")
-    INTERNAL_JWT_EXPIRE_MINUTES = int(os.getenv("INTERNAL_JWT_EXPIRE_MINUTES", 15)) # Thời gian sống ngắn hơn cho token nội bộ
+    INTERNAL_JWT_SECRET_KEY: str = "a_different_very_secure_secret_key_for_internal_communication"
+    INTERNAL_JWT_ALGORITHM: str = "HS256"
+    INTERNAL_JWT_EXPIRE_MINUTES: int = 15 # Thời gian sống ngắn hơn cho token nội bộ
 
     # Cấu hình cơ sở dữ liệu
-    DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://user:password@localhost:5432/rumai_db")
+    # Sử dụng Field(...) để đánh dấu là bắt buộc nếu không có giá trị mặc định
+    # Hoặc cung cấp giá trị mặc định như bên dưới
+    DATABASE_URL: str = "postgresql://user:password@localhost:5432/rumai_db"
 
     # Cấu hình Redis (nếu sử dụng)
-    REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
+    REDIS_URL: str = "redis://localhost:6379"
 
-    # Thêm các cấu hình khác nếu cần (ví dụ: HOST, PORT, etc.)
-    # HOST = os.getenv("HOST", "0.0.0.0")
-    # PORT = int(os.getenv("PORT", 8000))
+    # Thêm các cấu hình khác nếu cần
+    # HOST: str = "0.0.0.0"
+
+    class Config:
+        env_file = ".env"
+        env_file_encoding = 'utf-8' # Thêm encoding để hỗ trợ ký tự đặc biệt nếu cần
+        extra = 'ignore'  # Bỏ qua các biến môi trường không được định nghĩa trong Settings
 
 
-# Instance để sử dụng trong dự án
-config = Config()
+@lru_cache()
+def get_settings():
+    """Lấy đối tượng settings và lưu vào bộ nhớ cache để tránh khởi tạo lại nhiều lần"""
+    return Settings()

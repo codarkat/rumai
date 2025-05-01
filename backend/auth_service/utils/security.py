@@ -4,22 +4,22 @@ from datetime import datetime, timedelta, timezone
 
 from jose import jwt
 
-from config import config
+from config import get_settings
 
 # - Loại bỏ warning về bcrypt version
 logging.getLogger("passlib").setLevel(logging.ERROR)
 from passlib.context import CryptContext
 
 
-SECRET_KEY = config.SECRET_KEY
-ALGORITHM = config.ALGORITHM
-ACCESS_TOKEN_EXPIRE_MINUTES = config.ACCESS_TOKEN_EXPIRE_MINUTES
-REFRESH_TOKEN_EXPIRE_DAYS = config.REFRESH_TOKEN_EXPIRE_DAYS
+SECRET_KEY = get_settings().SECRET_KEY
+ALGORITHM = get_settings().ALGORITHM
+ACCESS_TOKEN_EXPIRE_MINUTES = get_settings().ACCESS_TOKEN_EXPIRE_MINUTES
+REFRESH_TOKEN_EXPIRE_DAYS = get_settings().REFRESH_TOKEN_EXPIRE_DAYS
 
 # Constants for Internal JWT
-INTERNAL_JWT_SECRET_KEY = config.INTERNAL_JWT_SECRET_KEY
-INTERNAL_JWT_ALGORITHM = config.INTERNAL_JWT_ALGORITHM
-INTERNAL_JWT_EXPIRE_MINUTES = config.INTERNAL_JWT_EXPIRE_MINUTES
+INTERNAL_JWT_SECRET_KEY = get_settings().INTERNAL_JWT_SECRET_KEY
+INTERNAL_JWT_ALGORITHM = get_settings().INTERNAL_JWT_ALGORITHM
+INTERNAL_JWT_EXPIRE_MINUTES = get_settings().INTERNAL_JWT_EXPIRE_MINUTES
 
 pwd_context = CryptContext(
     schemes=["bcrypt"],
