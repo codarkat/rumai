@@ -10,20 +10,24 @@ class Settings(BaseSettings):
     APP_DESCRIPTION: str = "Simple API service for Google Gemini models"
 
     # API settings
-    API_V1_STR: str = "/api/v1"
+    # API_V1_STR: str = "/api/v1"
+    API_V1_STR: str = "/v1"
 
     # Gemini Settings
-    GOOGLE_AI_STUDIO_API_KEY: str = os.getenv("GOOGLE_AI_STUDIO_API_KEY", "")
-    GEMINI_VISION_MODEL_NAME: str = os.getenv("GEMINI_VISION_MODEL_NAME", "gemini-2.0-flash")
-    GEMINI_CHAT_MODEL_NAME: str = os.getenv("GEMINI_CHAT_MODEL_NAME", "gemini-2.5-pro-exp-03-25")
+    GOOGLE_AI_STUDIO_API_KEY: str = ""
+    GEMINI_VISION_MODEL_NAME: str = "gemini-2.0-flash"
+    GEMINI_CHAT_MODEL_NAME: str = "gemini-2.5-pro-exp-03-25"
 
     # JWT Settings (for internal JWT verification from Gateway)
     # This key MUST match the key used by auth_service to SIGN the internal JWT
-    JWT_SECRET_KEY: str = os.getenv("JWT_SECRET_KEY", "a_very_secure_secret_key_for_internal_jwt") # Choose a strong, unique key
-    JWT_ALGORITHM: str = os.getenv("JWT_ALGORITHM", "HS256")
+
+    JWT_SECRET_KEY: str = ""
+    JWT_ALGORITHM: str = "HS256"
 
     class Config:
         env_file = ".env"
+        env_file_encoding = 'utf-8' # Thêm encoding để hỗ trợ ký tự đặc biệt nếu cần
+        extra = 'ignore'  # Bỏ qua các biến môi trường không được định nghĩa trong Settings
 
 
 @lru_cache()

@@ -20,9 +20,9 @@ ACCESS_TOKEN_EXPIRE_MINUTES = settings.ACCESS_TOKEN_EXPIRE_MINUTES
 REFRESH_TOKEN_EXPIRE_DAYS = settings.REFRESH_TOKEN_EXPIRE_DAYS
 
 # Constants for Internal JWT
-INTERNAL_JWT_SECRET_KEY = settings.INTERNAL_JWT_SECRET_KEY
-INTERNAL_JWT_ALGORITHM = settings.INTERNAL_JWT_ALGORITHM
-INTERNAL_JWT_EXPIRE_MINUTES = settings.INTERNAL_JWT_EXPIRE_MINUTES
+JWT_SECRET_KEY = settings.JWT_SECRET_KEY
+JWT_ALGORITHM = settings.JWT_ALGORITHM
+JWT_EXPIRE_MINUTES = settings.JWT_EXPIRE_MINUTES
 
 pwd_context = CryptContext(
     schemes=["bcrypt"],
@@ -58,6 +58,6 @@ def create_internal_jwt(data: dict):
     """
     to_encode = data.copy()
     # Đặt thời gian hết hạn ngắn hơn cho token nội bộ
-    expire = datetime.now(timezone.utc) + timedelta(minutes=INTERNAL_JWT_EXPIRE_MINUTES)
+    expire = datetime.now(timezone.utc) + timedelta(minutes=JWT_EXPIRE_MINUTES)
     to_encode.update({"exp": expire, "iss": "auth_service"}) # Thêm issuer để xác định nguồn gốc token
-    return jwt.encode(to_encode, INTERNAL_JWT_SECRET_KEY, algorithm=INTERNAL_JWT_ALGORITHM)
+    return jwt.encode(to_encode, JWT_SECRET_KEY, algorithm=JWT_ALGORITHM)

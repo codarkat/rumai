@@ -156,7 +156,7 @@ async def validate_and_generate_internal_token(
     """
     (Internal Endpoint for API Gateway)
     Xác thực access token của client. Nếu hợp lệ, tạo và trả về một JWT nội bộ
-    được ký bằng INTERNAL_JWT_SECRET_KEY để Gateway sử dụng.
+    được ký bằng JWT_SECRET_KEY để Gateway sử dụng.
     """
     # 1. Xác thực Access Token gốc (tương tự /validate-token nhưng không trả về lỗi 404 nếu user không tồn tại ngay)
     if token in blacklisted_tokens:

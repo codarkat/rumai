@@ -19,9 +19,9 @@ class Settings(BaseSettings):
     # Cấu hình cho JWT nội bộ (dùng giữa Gateway và Microservices)
     # Secret key này PHẢI được chia sẻ với các microservice khác (ví dụ: ai_service)
     # và PHẢI KHÁC với SECRET_KEY dùng cho client tokens.
-    INTERNAL_JWT_SECRET_KEY: str = "a_different_very_secure_secret_key_for_internal_communication"
-    INTERNAL_JWT_ALGORITHM: str = "HS256"
-    INTERNAL_JWT_EXPIRE_MINUTES: int = 15 # Thời gian sống ngắn hơn cho token nội bộ
+    JWT_SECRET_KEY: str = "a_different_very_secure_secret_key_for_internal_communication"
+    JWT_ALGORITHM: str = "HS256"
+    JWT_EXPIRE_MINUTES: int = 15 # Thời gian sống ngắn hơn cho token nội bộ
 
     # Cấu hình cơ sở dữ liệu
     # Sử dụng Field(...) để đánh dấu là bắt buộc nếu không có giá trị mặc định
