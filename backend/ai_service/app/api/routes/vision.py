@@ -1,3 +1,4 @@
+from fastapi import Depends
 from fastapi import APIRouter, HTTPException, status, Header, File, UploadFile, Form
 from typing import Optional
 from app.models.schemas import VisionResponse
