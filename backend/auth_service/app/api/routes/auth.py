@@ -10,7 +10,7 @@ from sqlalchemy.exc import SQLAlchemyError
 # Cập nhật đường dẫn import
 from app.services.auth_service import register_user, authenticate_user
 from app.utils.security import ( # Tạm thời giữ ở utils, sẽ di chuyển sau
-    create_access_token, create_internal_jwt,
+    create_access_token,
     SECRET_KEY, ALGORITHM,
     hash_password, verify_password
 )
