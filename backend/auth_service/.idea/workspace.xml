@@ -4,8 +4,12 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="0aca6dee-6378-424d-b205-31165ea25a65" name="Changes" comment="Update environment configuration and modify Docker Compose for auth service">
+    <list default="true" id="0aca6dee-6378-424d-b205-31165ea25a65" name="Changes" comment="Remove internal JWT creation function from auth module">
       <change beforePath="$PROJECT_DIR$/../../.idea/deployment.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../../.idea/deployment.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ai_service/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../ai_service/.idea/misc.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ai_service/app/api/routes/chat.py" beforeDir="false" afterPath="$PROJECT_DIR$/../ai_service/app/api/routes/chat.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ai_service/app/api/routes/vision.py" beforeDir="false" afterPath="$PROJECT_DIR$/../ai_service/app/api/routes/vision.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ai_service/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/../ai_service/main.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../../compose.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/../../compose.yaml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../../frontend/docker-compose.yml" beforeDir="false" afterPath="$PROJECT_DIR$/../../frontend/docker-compose.yml" afterDir="false" />
@@ -138,7 +142,8 @@
       <workItem from="1746030238326" duration="4951000" />
       <workItem from="1746035266772" duration="18652000" />
       <workItem from="1746213731941" duration="3690000" />
-      <workItem from="1746359219906" duration="410000" />
+      <workItem from="1746359219906" duration="3220000" />
+      <workItem from="1746375351270" duration="4939000" />
     </task>
     <task id="LOCAL-00001" summary="Refactor project structure and add internal JWT generation for API Gateway">
       <option name="closed" value="true" />
@@ -172,7 +177,15 @@
       <option name="project" value="LOCAL" />
       <updated>1746100501941</updated>
     </task>
-    <option name="localTasksCounter" value="5" />
+    <task id="LOCAL-00005" summary="Remove internal JWT creation function from auth module">
+      <option name="closed" value="true" />
+      <created>1746383482185</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1746383482185</updated>
+    </task>
+    <option name="localTasksCounter" value="6" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -183,7 +196,8 @@
     <MESSAGE value="Add initial project configuration files for Material Theme and inspection settings" />
     <MESSAGE value="Refactor main.py to improve import paths, add lifespan context manager, and update health check endpoints" />
     <MESSAGE value="Update environment configuration and modify Docker Compose for auth service" />
-    <option name="LAST_COMMIT_MESSAGE" value="Update environment configuration and modify Docker Compose for auth service" />
+    <MESSAGE value="Remove internal JWT creation function from auth module" />
+    <option name="LAST_COMMIT_MESSAGE" value="Remove internal JWT creation function from auth module" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/auth_service$main.coverage" NAME="main Coverage Results" MODIFIED="1746100325459" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />

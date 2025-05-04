@@ -47,6 +47,15 @@ async def root():
         "docs": "/docs"
     }
 
+# Add health check endpoint
+@app.get("/health")
+async def health():
+    return {
+        "status": "ok",
+        "service": settings.APP_NAME,
+        "version": settings.APP_VERSION
+    }
+
 if __name__ == "__main__":
     import uvicorn
     print(f"Starting server. Access API docs at http://127.0.0.1:8810/docs")

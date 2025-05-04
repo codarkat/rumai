@@ -12,6 +12,7 @@
             <excludedPath local="true" path="$PROJECT_DIR$/backend/ai_service/.venv" />
             <excludedPath local="true" path="$PROJECT_DIR$/backend/ocr_custom_service_fastapi/.venv" />
             <excludedPath local="true" path="$PROJECT_DIR$/backend/ocr_service_fastapi/.venv" />
+            <excludedPath local="true" path="$PROJECT_DIR$/frontend/node_modules" />
           </excludedPaths>
         </serverdata>
       </paths>

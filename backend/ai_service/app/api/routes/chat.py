@@ -3,7 +3,7 @@ from typing import Optional
 from app.models.schemas import ChatRequest, ChatResponse
 from app.services.gemini import GeminiService
 from app.core.config import get_settings
-from app.core.security import get_current_user, TokenData # Import security dependency
+# from app.core.security import get_current_user, TokenData # Import security dependency
 router = APIRouter()
 settings = get_settings()
 
