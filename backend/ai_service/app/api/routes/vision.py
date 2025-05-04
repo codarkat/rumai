@@ -4,7 +4,8 @@ from typing import Optional
 from app.models.schemas import VisionResponse
 from app.services.gemini import GeminiService
 from app.core.config import get_settings
-# from app.core.security import get_current_user, TokenData # Import security dependency
+from app.core.security import verify_token # <<< Import hàm verify_token
+
 router = APIRouter()
 settings = get_settings()
 
@@ -14,18 +15,18 @@ settings = get_settings()
     summary="Extract text from an image using Gemini Vision",
     responses={
         status.HTTP_400_BAD_REQUEST: {"description": "Bad request, such as invalid parameters or file type"},
-        status.HTTP_401_UNAUTHORIZED: {"description": "Invalid API key"},
+        status.HTTP_401_UNAUTHORIZED: {"description": "Authentication required or invalid token"}, # Cập nhật mô tả 401
         status.HTTP_403_FORBIDDEN: {"description": "Permission denied for the operation"},
         status.HTTP_429_TOO_MANY_REQUESTS: {"description": "Quota or rate limit exceeded"},
         status.HTTP_500_INTERNAL_SERVER_ERROR: {"description": "Internal server error"},
-        status.HTTP_503_SERVICE_UNAVAILABLE: {"description": "Service temporarily unavailable"}
+        status.HTTP_503_SERVICE_UNAVAILABLE: {"description": "Service temporarily unavailable or Auth service unavailable"} # Cập nhật mô tả 503
     }
 )
 async def extract_text_from_image(
     file: UploadFile = File(...),
     prompt: Optional[str] = Form(None),
     model: Optional[str] = Form(None),
-    x_google_api_key: Optional[str] = Header(None, alias="X-Google-API-Key") # Remove JWT verification dependency
+    current_user: dict = Depends(verify_token) # <<< Thêm dependency xác thực
 ):
     """
     Receives an image file and optional custom prompt, then extracts text 
@@ -50,9 +51,14 @@ async def extract_text_from_image(
                 detail="The uploaded image is too large. Please upload an image smaller than 10MB."
             )
         
-        # Use the API key from the header or the default from settings
-        api_key = x_google_api_key or settings.GOOGLE_AI_STUDIO_API_KEY
-        
+        # TODO: Cân nhắc lấy API key từ `current_user` nếu lưu trữ riêng
+        # Ví dụ: api_key = current_user.get("gemini_api_key") or settings.GOOGLE_AI_STUDIO_API_KEY
+        # Hiện tại vẫn dùng key mặc định từ settings
+        api_key = settings.GOOGLE_AI_STUDIO_API_KEY
+        if not api_key:
+             # Nên có kiểm tra key tồn tại và trả lỗi rõ ràng
+             raise HTTPException(status_code=500, detail="Gemini API key is not configured on the server.")
+
         # Initialize the Gemini service
         gemini_service = GeminiService(api_key=api_key)
         

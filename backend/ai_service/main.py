@@ -1,19 +1,34 @@
 from fastapi import FastAPI, Request
+from contextlib import asynccontextmanager
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import time
 from app.api.api import api_router
 from app.core.config import get_settings
+from app.core.security import close_http_client # Import hàm đóng client
 
 settings = get_settings()
 
-# Create FastAPI application
+# Lifespan context manager for startup and shutdown events
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Logic to run on startup (if any)
+    # E.g., initialize database connections, load models, etc.
+    print("AI Service starting up...")
+    yield
+    # Logic to run on shutdown
+    print("AI Service shutting down...")
+    await close_http_client()
+    print("HTTP client closed.")
+
+# Create FastAPI application with lifespan handler
 app = FastAPI(
     title=settings.APP_NAME,
     description=settings.APP_DESCRIPTION,
     version=settings.APP_VERSION,
     docs_url="/docs",
     redoc_url="/redoc",
+    lifespan=lifespan # <<< Use lifespan handler
 )
 
 # Add CORS middleware
@@ -55,7 +70,6 @@ async def health():
         "service": settings.APP_NAME,
         "version": settings.APP_VERSION
     }
-
 if __name__ == "__main__":
     import uvicorn
     print(f"Starting server. Access API docs at http://127.0.0.1:8810/docs")

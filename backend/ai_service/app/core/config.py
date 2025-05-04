@@ -18,6 +18,10 @@ class Settings(BaseSettings):
     GEMINI_VISION_MODEL_NAME: str = "gemini-2.0-flash"
     GEMINI_CHAT_MODEL_NAME: str = "gemini-2.5-pro-exp-03-25"
 
+# Security settings - MUST match Auth Service
+    SECRET_KEY: str = "your-secret-key-here"  # Load from environment variable
+    ALGORITHM: str = "HS256"              # Load from environment variable
+    AUTH_SERVICE_URL: str = "http://auth_service:8800" # Load from environment variable
     class Config:
         env_file = ".env"
         env_file_encoding = 'utf-8' # Thêm encoding để hỗ trợ ký tự đặc biệt nếu cần
