@@ -19,11 +19,6 @@ ALGORITHM = settings.ALGORITHM
 ACCESS_TOKEN_EXPIRE_MINUTES = settings.ACCESS_TOKEN_EXPIRE_MINUTES
 REFRESH_TOKEN_EXPIRE_DAYS = settings.REFRESH_TOKEN_EXPIRE_DAYS
 
-# Constants for Internal JWT
-JWT_SECRET_KEY = settings.JWT_SECRET_KEY
-JWT_ALGORITHM = settings.JWT_ALGORITHM
-JWT_EXPIRE_MINUTES = settings.JWT_EXPIRE_MINUTES
-
 pwd_context = CryptContext(
     schemes=["bcrypt"],
     deprecated="auto"
@@ -49,15 +44,3 @@ def create_refresh_token(data: dict):
     expire = datetime.now(timezone.utc) + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
-
-
-def create_internal_jwt(data: dict):
-    """
-    Tạo JWT nội bộ để giao tiếp giữa Gateway và các microservices.
-    Sử dụng secret key và thuật toán riêng biệt.
-    """
-    to_encode = data.copy()
-    # Đặt thời gian hết hạn ngắn hơn cho token nội bộ
-    expire = datetime.now(timezone.utc) + timedelta(minutes=JWT_EXPIRE_MINUTES)
-    to_encode.update({"exp": expire, "iss": "auth_service"}) # Thêm issuer để xác định nguồn gốc token
-    return jwt.encode(to_encode, JWT_SECRET_KEY, algorithm=JWT_ALGORITHM)

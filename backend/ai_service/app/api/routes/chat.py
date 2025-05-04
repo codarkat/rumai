@@ -22,8 +22,7 @@ settings = get_settings()
 )
 async def generate_chat_response(
     request_body: ChatRequest,
-    x_google_api_key: Optional[str] = Header(None, alias="X-Google-API-Key"),
-    current_user: TokenData = Depends(get_current_user) # Add JWT verification dependency
+    x_google_api_key: Optional[str] = Header(None, alias="X-Google-API-Key") # Remove JWT verification dependency
 ):
     """
     Receives a user message and optional chat history, then returns

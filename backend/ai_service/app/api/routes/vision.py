@@ -25,8 +25,7 @@ async def extract_text_from_image(
     file: UploadFile = File(...),
     prompt: Optional[str] = Form(None),
     model: Optional[str] = Form(None),
-    x_google_api_key: Optional[str] = Header(None, alias="X-Google-API-Key"),
-    current_user: TokenData = Depends(get_current_user) # Add JWT verification dependency
+    x_google_api_key: Optional[str] = Header(None, alias="X-Google-API-Key") # Remove JWT verification dependency
 ):
     """
     Receives an image file and optional custom prompt, then extracts text 

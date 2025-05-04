@@ -18,12 +18,6 @@ class Settings(BaseSettings):
     GEMINI_VISION_MODEL_NAME: str = "gemini-2.0-flash"
     GEMINI_CHAT_MODEL_NAME: str = "gemini-2.5-pro-exp-03-25"
 
-    # JWT Settings (for internal JWT verification from Gateway)
-    # This key MUST match the key used by auth_service to SIGN the internal JWT
-
-    JWT_SECRET_KEY: str = ""
-    JWT_ALGORITHM: str = "HS256"
-
     class Config:
         env_file = ".env"
         env_file_encoding = 'utf-8' # Thêm encoding để hỗ trợ ký tự đặc biệt nếu cần
