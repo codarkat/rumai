@@ -1,6 +1,6 @@
-# RumAI API Documentation - Authentication Service 🔑
+# RumAI Authentication Service API Documentation 🔑
 
-This document provides details on the API endpoints available for the RumAI Authentication Service, including user management, authentication flows, and exam time tracking.
+This document provides details on the API endpoints available for the RumAI Authentication Service, including user management and authentication flows.
 
 ## Base URL
 
@@ -45,14 +45,10 @@ Obtain this token via the `POST /auth/login` endpoint.
         "email": "user@example.com",
         "full_name": "User Full Name",
         "is_active": true,
-        // Other profile fields initialized as null/default
         "age": null,
         "gender": null,
         "russian_level": null,
-        "gemini_api_key": null,
-        "time_start": null,
-        "duration": null,
-        "time_end": null
+        "gemini_api_key": null
       }
     }
     ```
@@ -264,7 +260,7 @@ Obtain this token via the `POST /auth/login` endpoint.
 *   **Endpoint:** `GET /auth/profile`
 *   **Summary:** Retrieves the profile information of the currently authenticated user.
 *   **Authentication:** Bearer Token required.
-*   **Success Response (200 OK):** (Full user profile including exam time fields)
+*   **Success Response (200 OK):**
     ```json
     {
       "id": "uuid",
@@ -275,10 +271,7 @@ Obtain this token via the `POST /auth/login` endpoint.
       "age": null,
       "gender": null,
       "russian_level": null,
-      "gemini_api_key": null,
-      "time_start": "datetime | null",
-      "duration": "integer | null",
-      "time_end": "datetime | null"
+      "gemini_api_key": null
       // email_verified field might also be present
     }
     ```
@@ -343,82 +336,3 @@ Obtain this token via the `POST /auth/login` endpoint.
     { "message": "Account permanently deleted successfully" }
     ```
 *   **Error Response (404 Not Found):** If the user is not found.
-
----
-
-## ⏱️ Exam Time Management Endpoints
-
-These endpoints manage the start, end, and status of timed exams associated with a user.
-
-### 17. Start Exam Timer
-
-*   **Endpoint:** `POST /exam-time/start`
-*   **Summary:** Starts or resumes an exam timer for the current user. If an active timer exists, it returns the current status. Otherwise, it starts a new timer.
-*   **Authentication:** Bearer Token required.
-*   **Request Body:**
-    ```json
-    {
-      "duration": 3600 // Optional: Duration in seconds (default: 3600 = 60 minutes)
-    }
-    ```
-*   **Success Response (200 OK):**
-    ```json
-    {
-      "time_start": "datetime", // Time the exam started (UTC)
-      "duration": integer,      // Total duration in seconds
-      "time_end": "datetime",   // Calculated end time (UTC)
-      "remaining_seconds": integer, // Seconds remaining
-      "is_active": true         // Indicates the timer is running
-    }
-    ```
-
-### 18. Get Exam Timer Status
-
-*   **Endpoint:** `GET /exam-time/status`
-*   **Summary:** Retrieves the current status of the exam timer for the authenticated user.
-*   **Authentication:** Bearer Token required.
-*   **Success Response (200 OK):**
-    ```json
-    {
-      "time_start": "datetime | null",
-      "duration": integer | null,
-      "time_end": "datetime | null",
-      "remaining_seconds": integer, // 0 if not active or finished
-      "is_active": boolean        // True if timer is currently running
-    }
-    ```
-
-### 19. End Exam Timer
-
-*   **Endpoint:** `POST /exam-time/end`
-*   **Summary:** Manually ends the current exam timer for the authenticated user. If the timer was already finished, it returns the finished state.
-*   **Authentication:** Bearer Token required.
-*   **Success Response (200 OK):** Returns the final state of the timer.
-    ```json
-    {
-      "time_start": "datetime",
-      "duration": integer,
-      "time_end": "datetime", // The time it was ended (either calculated or current time if ended early)
-      "remaining_seconds": 0,
-      "is_active": false
-    }
-    ```
-*   **Error Response (400 Bad Request):** If no exam is currently in progress.
-    ```json
-    { "detail": "Không có bài thi đang diễn ra" } // Note: Error message seems to be in Vietnamese
-    ```
-
-### 20. Reset Exam Timer
-
-*   **Endpoint:** `POST /exam-time/reset`
-*   **Summary:** Resets the exam timer fields (`time_start`, `time_end`) for the authenticated user, effectively clearing any active or completed exam session state. Duration might be kept or reset based on implementation.
-*   **Authentication:** Bearer Token required.
-*   **Success Response (200 OK):** Returns the reset state.
-    ```json
-    {
-      "time_start": null,
-      "duration": integer | null, // May retain previous duration or be reset
-      "time_end": null,
-      "remaining_seconds": 0,
-      "is_active": false
-    }

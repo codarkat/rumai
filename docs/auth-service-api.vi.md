@@ -1,6 +1,6 @@
-# Tài liệu API RumAI - Dịch vụ Xác thực 🔑
+# Tài liệu API Dịch vụ Xác thực RumAI 🔑
 
-Tài liệu này cung cấp chi tiết về các điểm cuối API (API endpoints) có sẵn cho Dịch vụ Xác thực của RumAI, bao gồm quản lý người dùng, luồng xác thực và theo dõi thời gian làm bài thi.
+Tài liệu này cung cấp chi tiết về các điểm cuối API (API endpoints) có sẵn cho Dịch vụ Xác thực của RumAI, bao gồm quản lý người dùng và luồng xác thực.
 
 ## URL Cơ sở
 
@@ -49,10 +49,7 @@ Lấy token này thông qua điểm cuối `POST /auth/login`.
         "age": null,
         "gender": null,
         "russian_level": null,
-        "gemini_api_key": null,
-        "time_start": null,
-        "duration": null,
-        "time_end": null
+        "gemini_api_key": null
       }
     }
     ```
@@ -264,7 +261,7 @@ Lấy token này thông qua điểm cuối `POST /auth/login`.
 *   **Điểm cuối:** `GET /auth/profile`
 *   **Tóm tắt:** Lấy thông tin hồ sơ của người dùng hiện đang được xác thực.
 *   **Xác thực:** Yêu cầu Bearer Token.
-*   **Phản hồi Thành công (200 OK):** (Hồ sơ người dùng đầy đủ bao gồm các trường thời gian thi)
+*   **Phản hồi Thành công (200 OK):**
     ```json
     {
       "id": "uuid",
@@ -275,10 +272,7 @@ Lấy token này thông qua điểm cuối `POST /auth/login`.
       "age": null,
       "gender": null,
       "russian_level": null,
-      "gemini_api_key": null,
-      "time_start": "datetime | null",
-      "duration": "integer | null",
-      "time_end": "datetime | null"
+      "gemini_api_key": null
       // Trường email_verified cũng có thể có mặt
     }
     ```
@@ -343,82 +337,3 @@ Lấy token này thông qua điểm cuối `POST /auth/login`.
     { "message": "Tài khoản đã được xóa vĩnh viễn thành công" }
     ```
 *   **Phản hồi Lỗi (404 Not Found):** Nếu không tìm thấy người dùng.
-
----
-
-## ⏱️ Điểm cuối Quản lý Thời gian Thi
-
-Các điểm cuối này quản lý việc bắt đầu, kết thúc và trạng thái của các bài thi có giới hạn thời gian liên kết với người dùng.
-
-### 17. Bắt đầu Đồng hồ Thi
-
-*   **Điểm cuối:** `POST /exam-time/start`
-*   **Tóm tắt:** Bắt đầu hoặc tiếp tục đồng hồ thi cho người dùng hiện tại. Nếu có đồng hồ đang hoạt động, nó sẽ trả về trạng thái hiện tại. Nếu không, nó sẽ bắt đầu một đồng hồ mới.
-*   **Xác thực:** Yêu cầu Bearer Token.
-*   **Nội dung Yêu cầu:**
-    ```json
-    {
-      "duration": 3600 // Tùy chọn: Thời lượng tính bằng giây (mặc định: 3600 = 60 phút)
-    }
-    ```
-*   **Phản hồi Thành công (200 OK):**
-    ```json
-    {
-      "time_start": "datetime", // Thời gian bắt đầu thi (UTC)
-      "duration": integer,      // Tổng thời lượng tính bằng giây
-      "time_end": "datetime",   // Thời gian kết thúc dự kiến (UTC)
-      "remaining_seconds": integer, // Số giây còn lại
-      "is_active": true         // Cho biết đồng hồ đang chạy
-    }
-    ```
-
-### 18. Lấy Trạng thái Đồng hồ Thi
-
-*   **Điểm cuối:** `GET /exam-time/status`
-*   **Tóm tắt:** Lấy trạng thái hiện tại của đồng hồ thi cho người dùng đã xác thực.
-*   **Xác thực:** Yêu cầu Bearer Token.
-*   **Phản hồi Thành công (200 OK):**
-    ```json
-    {
-      "time_start": "datetime | null",
-      "duration": integer | null,
-      "time_end": "datetime | null",
-      "remaining_seconds": integer, // 0 nếu không hoạt động hoặc đã kết thúc
-      "is_active": boolean        // True nếu đồng hồ đang chạy
-    }
-    ```
-
-### 19. Kết thúc Đồng hồ Thi
-
-*   **Điểm cuối:** `POST /exam-time/end`
-*   **Tóm tắt:** Kết thúc thủ công đồng hồ thi hiện tại cho người dùng đã xác thực. Nếu đồng hồ đã kết thúc, nó sẽ trả về trạng thái đã kết thúc.
-*   **Xác thực:** Yêu cầu Bearer Token.
-*   **Phản hồi Thành công (200 OK):** Trả về trạng thái cuối cùng của đồng hồ.
-    ```json
-    {
-      "time_start": "datetime",
-      "duration": integer,
-      "time_end": "datetime", // Thời gian kết thúc (dự kiến hoặc hiện tại nếu kết thúc sớm)
-      "remaining_seconds": 0,
-      "is_active": false
-    }
-    ```
-*   **Phản hồi Lỗi (400 Bad Request):** Nếu không có bài thi nào đang diễn ra.
-    ```json
-    { "detail": "Không có bài thi đang diễn ra" }
-    ```
-
-### 20. Đặt lại Đồng hồ Thi
-
-*   **Điểm cuối:** `POST /exam-time/reset`
-*   **Tóm tắt:** Đặt lại các trường đồng hồ thi (`time_start`, `time_end`) cho người dùng đã xác thực, xóa trạng thái phiên thi đang hoạt động hoặc đã hoàn thành. Thời lượng có thể được giữ lại hoặc đặt lại tùy thuộc vào cách triển khai.
-*   **Xác thực:** Yêu cầu Bearer Token.
-*   **Phản hồi Thành công (200 OK):** Trả về trạng thái đã đặt lại.
-    ```json
-    {
-      "time_start": null,
-      "duration": integer | null, // Có thể giữ lại thời lượng trước đó hoặc được đặt lại
-      "time_end": null,
-      "remaining_seconds": 0,
-      "is_active": false
-    }
